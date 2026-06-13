@@ -67,11 +67,14 @@ Bitacora de avance, fase por fase.
   Backend intercambiable (no toca la busqueda).
 - Criterio: RAG para pregunta puntual sobre corpus grande; full-context
   para extraer campos de un doc chico.
-- Debugging real (documentado en el README del proyecto): con embeddings
-  solo-ingles, preguntas en espanol sobre docs en ingles no recuperaban el
-  fragmento correcto. El modelo NO alucino, se nego a responder. Diagnostico:
-  falla de retrieval cross-lingual, no de generacion. Fix: modelo de
-  embeddings multilingue. Leccion -> solo un eval set detecta esto sistematico.
+- Debugging real (documentado en el README del proyecto): pregunta en espanol
+  sobre docs en ingles no recuperaba el fragmento correcto. El modelo NO
+  alucino, se nego a responder. Diagnostico: falla de retrieval cross-lingual.
+  El fix correcto (modelo multilingue) NO cargo: segfault con Python 3.14 +
+  torch 2.12 (no se puede atrapar). Resolucion pragmatica: modelo en ingles +
+  queries en ingles (estable). Alternativas anotadas: model2vec multilingue
+  (sin torch) o embedder hosteado. Leccion -> solo un eval set lo detecta
+  sistematico. Entorno: Python 3.14 es bleeding-edge, algunos modelos rompen.
 
 ## Siguiente
 

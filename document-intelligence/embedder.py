@@ -21,9 +21,8 @@ def _load():
         return
     try:
         from sentence_transformers import SentenceTransformer
-        # Modelo multilingue: permite preguntar en espanol sobre docs en ingles.
-        _model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-        _backend = "sentence-transformers multilingue (PyTorch)"
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        _backend = "sentence-transformers (PyTorch)"
     except Exception:
         from model2vec import StaticModel
         _model = StaticModel.from_pretrained("minishlab/potion-base-8M")

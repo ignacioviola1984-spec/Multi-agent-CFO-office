@@ -79,8 +79,8 @@ if __name__ == "__main__":
     print("=" * 60)
     print("RAG - preguntas en lenguaje natural sobre los documentos")
     print("=" * 60)
-    for q in ["Que aviso previo necesito para no renovar el contrato de cloud?",
-              "Cual es el plazo de pago de la agencia de marketing?"]:
+    for q in ["What notice is required to avoid renewing the cloud contract?",
+              "What are the payment terms for the marketing agency?"]:
         hits, txt = answer(q)
         print(f"\nQ: {q}")
         print("  fuentes recuperadas:", ", ".join(sorted(set(h[0] for h in hits))))
