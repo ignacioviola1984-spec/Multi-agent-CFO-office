@@ -41,11 +41,18 @@ Bitacora de avance, fase por fase.
 - Superficie read-only deliberada (sin tools de escritura).
 - Pendiente opcional: conectar a Claude Desktop via config.
 
+### Fase 3.1 — Patrones de agentes  [OK]
+- orchestration/patterns.py: prompt chaining (numeros->observaciones->
+  resumen) y routing (clasifica->despacha al especialista).
+- Reusa el MCP server como fuente de verdad de los numeros.
+- Leccion real: el modelo etiquito "vencido" como >30 dias (53%) cuando
+  ~97% estaba vencido. Numeros exactos, interpretacion enganosa. Por eso
+  importan evals + human-in-the-loop.
+
 ## Siguiente
 
-### Fase 3 — Orquestacion multi-agente + sub-agents
-- Patrones (prompt chaining, routing) sobre tarea financiera.
-- Orquestador + sub-agent por etapa con el Claude Agent SDK.
+### Fase 3.2 / 3.3 — Orquestador con sub-agents + controles
+- Orquestador + sub-agent por etapa (close, cash forecast, reporting).
 - Checks entre etapas, audit trail, escalamiento (human-in-the-loop).
 
 ## Notas
