@@ -94,6 +94,33 @@ with open(f"{DATA}/pnl_activity.csv", "w", newline="") as f:
     w = csv.writer(f); w.writerow(["entity_id","period","account_code","amount_local"])
     w.writerows(pnl_rows)
 
+# ---- budget.csv (plan operativo, en USD, por entidad/periodo/cuenta) ----
+# El presupuesto es un PLAN deliberado fijado antes del periodo, NO los actuals
+# con ruido (eso seria circular). Por eso es deterministico: crecimiento
+# planificado limpio de 6%/mes y ratios objetivo de margen. La desviacion de
+# los actuals contra este plan es la varianza (el objeto del analisis FP&A).
+# Se guarda en USD: es el plan del grupo en su moneda funcional. Como los
+# actuals se convierten a USD a la tasa del mismo periodo, la varianza
+# consolidada en USD queda puramente operativa (sin efecto de traduccion FX).
+plan_ratios = {        # como % del revenue planificado
+    "5000": 0.22,      # Cost of revenue       -> gross margin objetivo 78%
+    "6000": 0.58,      # Sales & marketing
+    "6100": 0.50,      # Research & development
+    "6200": 0.28,      # General & admin
+}
+budget_rows = []
+for eid, name, country, cur, scale in entities:
+    base_rev_usd = 380000 * scale
+    for i, p in enumerate(periods):
+        rev_plan = base_rev_usd * (1.06 ** i)   # crecimiento planificado, sin ruido
+        budget_rows.append([eid, p, "4000", round(rev_plan, 2)])
+        for code, ratio in plan_ratios.items():
+            budget_rows.append([eid, p, code, round(rev_plan * ratio, 2)])
+
+with open(f"{DATA}/budget.csv", "w", newline="") as f:
+    w = csv.writer(f); w.writerow(["entity_id","period","account_code","amount_usd"])
+    w.writerows(budget_rows)
+
 # ---- balance_sheet.csv (snapshot al ultimo periodo, moneda local) ----
 # Calculamos cash, AR, FA, AP, deferred, paid-in; RE es el plug.
 last = periods[-1]

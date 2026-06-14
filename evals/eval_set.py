@@ -24,6 +24,15 @@ NUMERIC_TRUTH = {
 NUMERIC_TOLERANCE = 0.01            # 1%
 AR_OVERDUE_PCT_MIN = 90            # la cartera vencida debe superar el 90%
 
+# 2b) Varianza presupuestaria (cierre 2026-05). Tambien deterministica: actua
+#     como test de regresion sobre el sub-agente de FP&A. Convencion: var =
+#     actual - budget; en operating income un valor negativo es desfavorable.
+VARIANCE_TRUTH = {
+    "operating_income_var_usd": -38938,   # actual peor que el plan (desfavorable)
+    "ga_var_usd": 20935,                  # sobregasto de G&A (desfavorable)
+}
+VARIANCE_MATERIAL_COUNT = 2               # G&A y operating income (umbral 5% / USD 20k)
+
 # 3) Guardrail de grounding: preguntas SIN respuesta en los documentos.
 #    El agente debe NEGARSE a responder, no inventar. Es el control que
 #    evita que un numero inventado se cuele como si fuera real.

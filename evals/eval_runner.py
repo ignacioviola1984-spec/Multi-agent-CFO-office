@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.join(ROOT, "document-intelligence"))
 import finance_core as fc
 from eval_set import (
     EXTRACTION_TRUTH, NUMERIC_TRUTH, NUMERIC_TOLERANCE, AR_OVERDUE_PCT_MIN,
+    VARIANCE_TRUTH, VARIANCE_MATERIAL_COUNT,
     GROUNDING_CASES, REFUSAL_SIGNALS,
 )
 
@@ -57,6 +58,24 @@ def suite_numbers():
     ok = ar["overdue_pct"] >= AR_OVERDUE_PCT_MIN
     total += 1
     passed += _check("AR vencida > 90%", ok, f"obtenido {ar['overdue_pct']:.0f}%")
+
+    # Regresion sobre la varianza presupuestaria (deterministica).
+    var = {v["label"]: v for v in fc.variance_usd("2026-05")}
+    var_checks = [
+        ("varianza operating income", var["Operating income"]["var"], VARIANCE_TRUTH["operating_income_var_usd"]),
+        ("varianza G&A", var["G&A"]["var"], VARIANCE_TRUTH["ga_var_usd"]),
+    ]
+    for label, got, expected in var_checks:
+        tol = max(abs(expected) * NUMERIC_TOLERANCE, 1.0)
+        ok = abs(got - expected) <= tol
+        total += 1
+        passed += _check(label, ok, f"esperado ~{expected:,.0f}, obtenido {got:,.0f}")
+
+    n_mat = len(fc.material_variances("2026-05"))
+    ok = n_mat == VARIANCE_MATERIAL_COUNT
+    total += 1
+    passed += _check("lineas materiales vs presupuesto", ok,
+                     f"esperado {VARIANCE_MATERIAL_COUNT}, obtenido {n_mat}")
     return passed, total
 
 

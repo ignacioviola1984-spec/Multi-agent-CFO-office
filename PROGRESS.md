@@ -88,6 +88,31 @@ Bitacora de avance, fase por fase.
   boton, Document Intelligence con RAG + extraccion). Reusa el codigo del repo.
 - Corre con: python -m streamlit run app.py
 
+### Fase 7 — CFO Office: equipo multi-agente sobre estado compartido  [OK]
+- cfo-office/: agentes especializados que se comunican por un "libro" comun
+  (shared_state.CFOContext: put/get/audit/save a cfo_state.json), coordinados
+  por un CFO orquestador. Evolucion del operating model de etapa fija a un
+  equipo multi-agente con estado compartido y auditable.
+- Agentes: Controller (cierre, margenes, AR), Treasury (caja, burn, runway),
+  FP&A (forecast, variance MoM + variance vs presupuesto, anomalias) y el CFO
+  (cfo_orchestrator) que reconcilia, consolida escalamientos y hace UN solo gate.
+- Presupuesto vs actual (FP&A): se sumo budget.csv (plan deliberado, no actuals
+  con ruido) + finance_core.{budget_usd,variance_usd,material_variances}. F/U por
+  tipo de linea; % sobre abs(budget); el FX se cancela -> varianza puramente
+  operativa. Materialidad 5% + piso USD 20k (revision mensual).
+- Confiabilidad: cross_checks deterministicos entre agentes (Controller op income
+  == actual de FP&A; burn de Treasury == -op income) que atrapan derivas antes
+  del board; un solo HITL del CFO (los sub-agentes no duplican gate); sin doble
+  conteo de escalamientos (cada riesgo tiene un dueno).
+- evals/: 3 checks de regresion nuevos en la suite numbers (varianza op income,
+  varianza G&A, conteo de lineas materiales). Suite numbers 6/6 PASS.
+- Verificado sin tokens: corrida 2026-05 -> 5 escalamientos ALTA (perdida
+  operativa, 97% AR vencida, runway 9.4m < 12, sobregasto G&A, op income vs plan);
+  cross_checks OK con datos coherentes y FALLA ante inconsistencia (tamper test).
+- Decision de proceso: el trabajo previo en orchestration/ (operating model v3
+  con varianza) quedo descartado; la arquitectura elegida es el office. La
+  capacidad de varianza vive en finance_core (compartida) y la usa el office.
+
 ## Siguiente
 
 ### Fase 6.2 — Deploy + demo
