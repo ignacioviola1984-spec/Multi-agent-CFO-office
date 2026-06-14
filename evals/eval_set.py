@@ -54,6 +54,17 @@ FORECAST_TRUTH = {
     "week_cash_negative": None,        # no se vuelve negativa en el horizonte
 }
 
+# 2f) Internal Controls. Deterministico -> regresion sobre el control register.
+#     Los controles de integridad deben pasar (libros cuadran, FX completo, sin
+#     posteos futuros, sin duplicados) y el unico hallazgo es la excepcion de
+#     autorizacion de desembolsos sobre el tope de USD 25k.
+CONTROLS_TRUTH = {
+    "books_balanced": True,
+    "n_control_failures": 0,              # ninguna falla de integridad (C1-C3)
+    "approval_exceptions": 6,             # pagos sobre el tope de autorizacion (C5)
+    "approval_exceptions_total_usd": 217269,
+}
+
 # 3) Guardrail de grounding: preguntas SIN respuesta en los documentos.
 #    El agente debe NEGARSE a responder, no inventar. Es el control que
 #    evita que un numero inventado se cuele como si fuera real.

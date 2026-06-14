@@ -394,3 +394,147 @@ def cash_forecast_13w(start="2026-06-01"):
     return {"start": start, "starting_cash": start_cash, "weekly_burn": weekly_burn,
             "rows": rows, "ending_cash": cash, "min_cash": min_cash,
             "min_week": min_week, "week_cash_negative": week_negative}
+
+
+# --------------------------------------------------------------------------
+# Internal Controls: pruebas de control deterministicas sobre la INTEGRIDAD de
+# los datos y del proceso (capa de aseguramiento, estilo SOX). No mide
+# performance del negocio -eso es de los otros agentes-: testea que los libros
+# cuadren, que no falten tasas de cambio, que no haya posteos con fecha futura,
+# y marca desembolsos que exigen autorizacion. Cada riesgo con un unico dueno:
+# Internal Controls escala FALLAS DE CONTROL, no riesgos ya escalados (runway,
+# AR/AP/tax vencidos, perdida operativa) que tienen su propio dueno.
+# --------------------------------------------------------------------------
+
+# Mapa de cuentas de balance a su naturaleza (A=activo, L=pasivo, E=patrimonio).
+_BS_TYPE = {"1000": "A", "1100": "A", "1500": "A",
+            "2000": "L", "2500": "L", "3000": "E", "3900": "E"}
+
+APPROVAL_THRESHOLD_USD = 25000.0   # tope de pago unico que exige autorizacion documentada
+
+
+def _trial_balance_imbalance(period=LATEST):
+    """Maximo |Activo - (Pasivo + Patrimonio)| por entidad, en USD.
+
+    Es el control contable basico: el balance de comprobacion debe cuadrar.
+    Como los CSV guardan montos redondeados a 2 decimales en moneda local y
+    aca se reconvierten a USD, queda un residuo de redondeo de centavos; por
+    eso el chequeo usa una tolerancia, no igualdad exacta.
+    """
+    max_imb = 0.0
+    for e in _ENT:
+        eid = e["entity_id"]
+        if (period, _CCY[eid]) not in _FX:
+            continue   # sin tasa no se puede traducir: lo reporta el control C2
+        a = l = q = 0.0
+        for r in _BS:
+            if r["entity_id"] != eid:
+                continue
+            t = _BS_TYPE.get(r["account_code"])
+            if t is None:
+                continue
+            v = _usd(float(r["amount_local"]), _CCY[eid], period)
+            if t == "A":
+                a += v
+            elif t == "L":
+                l += v
+            else:
+                q += v
+        max_imb = max(max_imb, abs(a - (l + q)))
+    return max_imb
+
+
+def control_checks(period=LATEST, as_of="2026-05-31",
+                   bs_tolerance=1.0, approval_threshold=APPROVAL_THRESHOLD_USD):
+    """Suite de controles internos deterministicos.
+
+    Devuelve una lista de chequeos, cada uno con estado (PASS / FAIL /
+    EXCEPTION) y severidad, mas un resumen. Convencion: FAIL = se rompio un
+    invariante de integridad; EXCEPTION = hay items que requieren revision
+    (no necesariamente un error); PASS = limpio. El agente solo narra; aca se
+    decide deterministicamente -> testeable por evals.
+    """
+    asof = datetime.date.fromisoformat(as_of)
+    checks = []
+
+    # C1 - Balance de comprobacion: Activo = Pasivo + Patrimonio (integridad).
+    imb = _trial_balance_imbalance(period)
+    checks.append({
+        "id": "C1", "name": "Trial balance in balance",
+        "status": "PASS" if imb <= bs_tolerance else "FAIL",
+        "severity": "CRITICAL", "value": imb,
+        "detail": (f"books balance (max entity imbalance USD {imb:,.2f}, tol {bs_tolerance:,.0f})"
+                   if imb <= bs_tolerance else
+                   f"books do NOT balance: max entity imbalance USD {imb:,.0f}"),
+    })
+
+    # C2 - Completitud de FX: toda combinacion periodo/moneda usada tiene tasa.
+    needed = {(r["period"], _CCY[r["entity_id"]]) for r in _PNL}
+    needed |= {(period, _CCY[r["entity_id"]]) for r in _BS}
+    missing = sorted(k for k in needed if k not in _FX)
+    checks.append({
+        "id": "C2", "name": "FX rate completeness",
+        "status": "PASS" if not missing else "FAIL",
+        "severity": "CRITICAL", "value": len(missing),
+        "detail": (f"all {len(needed)} period/currency pairs have an FX rate"
+                   if not missing else f"missing FX rates: {missing}"),
+    })
+
+    # C3 - Corte de posteo: ningun documento con fecha posterior al cierre.
+    future = [r["invoice_id"] for r in _INV
+              if datetime.date.fromisoformat(r["issue_date"]) > asof]
+    future += [r["bill_id"] for r in _AP
+               if datetime.date.fromisoformat(r["issue_date"]) > asof]
+    checks.append({
+        "id": "C3", "name": "Posting cutoff (no future-dated documents)",
+        "status": "PASS" if not future else "FAIL",
+        "severity": "HIGH", "value": len(future),
+        "detail": ("no AR/AP documents dated after period close"
+                   if not future else
+                   f"{len(future)} document(s) dated after close: {future[:5]}"),
+    })
+
+    # C4 - Desembolsos duplicados: AP abierta con misma entidad+proveedor+monto.
+    groups = {}
+    for r in _AP:
+        if r["status"] != "open":
+            continue
+        k = (r["entity_id"], r["vendor"], r["amount_local"])
+        groups.setdefault(k, []).append(r["bill_id"])
+    dups = {k: v for k, v in groups.items() if len(v) > 1}
+    checks.append({
+        "id": "C4", "name": "Duplicate disbursements",
+        "status": "PASS" if not dups else "EXCEPTION",
+        "severity": "HIGH", "value": len(dups),
+        "detail": ("no duplicate open payables detected"
+                   if not dups else
+                   f"{len(dups)} potential duplicate payable group(s): "
+                   f"{[v for v in dups.values()][:3]}"),
+    })
+
+    # C5 - Autorizacion de desembolsos: pagos sobre el tope unico requieren firma.
+    # Se saltean los que no se pueden traducir (FX faltante): los reporta C2.
+    over = [(r["bill_id"], _usd(float(r["amount_local"]), r["currency"], LATEST))
+            for r in _AP if r["status"] == "open"
+            and (LATEST, r["currency"]) in _FX
+            and _usd(float(r["amount_local"]), r["currency"], LATEST) >= approval_threshold]
+    over_total = sum(a for _, a in over)
+    checks.append({
+        "id": "C5", "name": "Disbursement authorization threshold",
+        "status": "PASS" if not over else "EXCEPTION",
+        "severity": "HIGH",
+        "value": {"n": len(over), "total": over_total, "threshold": approval_threshold},
+        "detail": (f"no single payment exceeds the USD {approval_threshold:,.0f} authorization threshold"
+                   if not over else
+                   f"{len(over)} payment(s) above the USD {approval_threshold:,.0f} authorization "
+                   f"threshold (total USD {over_total:,.0f}) require documented authorization"),
+    })
+
+    return {
+        "checks": checks,
+        "n_fail": sum(1 for c in checks if c["status"] == "FAIL"),
+        "n_exception": sum(1 for c in checks if c["status"] == "EXCEPTION"),
+        "n_pass": sum(1 for c in checks if c["status"] == "PASS"),
+        "books_balanced": imb <= bs_tolerance, "max_bs_imbalance": imb,
+        "approval_exceptions": len(over), "approval_exceptions_total": over_total,
+    }

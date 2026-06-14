@@ -157,12 +157,34 @@ Bitacora de avance, fase por fase.
 - Corrida 2026-05: runway 9.4m; 13s termina en USD 5,14M, valle semana 13,
   positiva en todo el horizonte (no dispara la escalacion critica).
 
+### Fase 7.4 — Internal Controls Agent (aseguramiento, estilo SOX)  [OK]
+- cfo-office/internal_controls_agent.py: 6to agente del office. Capa de
+  ASEGURAMIENTO: no mide performance del negocio (eso es de los otros), testea
+  la INTEGRIDAD de datos y proceso. Registro de 5 controles deterministicos en
+  finance_core.control_checks (el agente solo narra):
+  C1 balance de comprobacion (Activo = Pasivo + Patrimonio, por entidad),
+  C2 completitud de FX (toda moneda/periodo con tasa),
+  C3 corte de posteo (sin documentos con fecha futura),
+  C4 desembolsos duplicados (AP misma entidad+proveedor+monto),
+  C5 autorizacion de desembolsos (pagos sobre el tope unico de USD 25k).
+- Cada control: estado PASS / FAIL (integridad rota) / EXCEPTION (items a revisar)
+  + severidad. Escala SOLO fallas de control; no duplica riesgos con dueno
+  (runway, AR/AP/tax vencidos, perdida op). Corrida 2026-05: 4 PASS, 0 FAIL,
+  1 EXCEPTION (6 pagos > USD 25k, total USD 217.269 -> requieren autorizacion).
+- Controles con dientes (probado con tamper test): romper el balance dispara C1
+  FAIL; sacar una tasa FX dispara C2 FAIL. Fix de robustez: las conversiones a
+  USD saltean filas sin tasa para que C2 reporte el faltante en vez de crashear.
+- Integrado al CFO orquestador como etapa [6/6]; el board pack incorpora la
+  pata de assurance y las acciones la enforcean (P3). 9 escalamientos distintos.
+- evals: 4 checks nuevos (libros cuadran, 0 fallas de integridad, conteo y total
+  de excepciones de autorizacion). Suite numbers 17/17 PASS.
+
 ## Backlog del departamento (multi-agente, hacia el "full finance department")
 - Faltantes mapeados (ver chat de gap analysis): Strategic Finance [HECHO],
-  Administration/AR/AP/Tax [HECHO], Internal Controls (agente formal),
-  Finance Compliance, Audit (agente), profundizar Treasury (cash forecast 13s)
-  y Accounting&Close (recons/JE/accruals), AgentOps (monitoreo + CI),
-  Finance Data (capa unificada).
+  Administration/AR/AP/Tax [HECHO], Internal Controls [HECHO], profundizar
+  Treasury (cash forecast 13s) [HECHO]; faltan: Finance Compliance,
+  Audit (agente), Accounting&Close (recons/JE/accruals), AgentOps (monitoreo +
+  CI), Finance Data (capa unificada).
 - Demo publica (cfo-demo): por ahora muestra 4 agentes; falta sumar la pata de
   Administration al snapshot/app y re-deployar (pendiente, opcional).
 

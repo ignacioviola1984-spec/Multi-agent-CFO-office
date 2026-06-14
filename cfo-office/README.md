@@ -21,6 +21,7 @@ and writes prose. It never invents a figure.
 | ↳ Tax | `tax_agent.py` | Tax obligations, overdue & upcoming by jurisdiction, compliance risk |
 | **FP&A** | `fpa_agent.py` | Forecast (next period), MoM variance, **budget-vs-actual** variance, anomalies |
 | **Strategic Finance** | `strategic_finance_agent.py` | Run-rate, Rule of 40, burn multiple, magic number, growth scenarios, path to breakeven |
+| **Internal Controls** | `internal_controls_agent.py` | Assurance (SOX-style): trial balance ties, FX completeness, posting cutoff, duplicate payments, disbursement authorization |
 | **CFO** | `cfo_orchestrator.py` | Runs the others, reconciles them, consolidates escalations, single HITL, board pack |
 
 ## The shared state (`shared_state.py`)
@@ -43,10 +44,11 @@ CFO orchestrator
   │        └─ Tax                 → overdue, compliance
   ├─ 4) FP&A                  → forecast, variances, anomalies  + flags
   ├─ 5) Strategic             → run-rate, efficiency, breakeven + flags
-  ├─ 6) cross_checks          → agents must agree on shared numbers
-  ├─ 7) gather_escalations    → consolidate flags by severity
-  ├─ 8) hitl_gate             → ONE human approval if serious flags
-  └─ 9) board pack + actions  → consolidated, fixed only on approval
+  ├─ 6) Internal Controls     → assurance: integrity + authorization checks + flags
+  ├─ 7) cross_checks          → agents must agree on shared numbers
+  ├─ 8) gather_escalations    → consolidate flags by severity
+  ├─ 9) hitl_gate             → ONE human approval if serious flags
+  └─ 10) board pack + actions → consolidated, fixed only on approval
 ```
 
 Run the whole office (needs `ANTHROPIC_API_KEY` in the repo-root `.env`):
@@ -72,15 +74,22 @@ those are suppressed so there is exactly **one** CFO gate, not one per agent.
   gate for solo use.
 - **Hierarchical orchestration.** Administration is itself a sub-orchestrator:
   the CFO delegates the administrative function to it, and it coordinates
-  AR/AP/Tax and rolls their flags into one report. The CFO sees five reports,
-  not eight — the hierarchy mirrors a real org and keeps the top level clean.
+  AR/AP/Tax and rolls their flags into one report. The CFO sees six reports,
+  not nine — the hierarchy mirrors a real org and keeps the top level clean.
 - **Escalations don't double-count.** Each risk has exactly one owner:
-  Controller → operating loss; Treasury → runway; Administration (via its
-  sub-agents) → overdue receivables, overdue payables, overdue tax; FP&A →
-  material *unfavorable* budget variances; Strategic Finance → capital
-  efficiency and whether growth alone reaches breakeven. The overdue-AR flag,
-  for instance, was deliberately moved off the Controller onto the AR agent so
-  it has a single owner.
+  Controller → operating loss; Treasury → runway and 13-week cash; Administration
+  (via its sub-agents) → overdue receivables, overdue payables, overdue tax;
+  FP&A → material *unfavorable* budget variances; Strategic Finance → capital
+  efficiency and whether growth alone reaches breakeven; Internal Controls →
+  *control failures only* (books don't tie, missing FX, future-dated postings,
+  duplicate or unauthorized disbursements) — never a business risk another agent
+  already owns. The overdue-AR flag, for instance, was deliberately moved off the
+  Controller onto the AR agent so it has a single owner.
+- **Assurance is a distinct lens.** Internal Controls does not measure business
+  performance; it tests the *integrity of the data and the process*. Its checks
+  are deterministic and **proven with a tamper test**: corrupt the trial balance
+  or drop an FX rate and the relevant control flips to FAIL, so it is a real
+  control with teeth, not a no-op that always passes.
 - **Two variance lenses in FP&A.** MoM ("how did we move vs last month") and
   budget-vs-actual ("did we hit the plan") answer different questions; the
   office reports both. Budget-vs-actual reuses the verified `finance_core`

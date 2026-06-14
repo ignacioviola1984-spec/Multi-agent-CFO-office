@@ -29,7 +29,7 @@ import finance_core as fc
 from eval_set import (
     EXTRACTION_TRUTH, NUMERIC_TRUTH, NUMERIC_TOLERANCE, AR_OVERDUE_PCT_MIN,
     VARIANCE_TRUTH, VARIANCE_MATERIAL_COUNT, STRATEGIC_TRUTH, ADMIN_TRUTH,
-    FORECAST_TRUTH, GROUNDING_CASES, REFUSAL_SIGNALS,
+    FORECAST_TRUTH, CONTROLS_TRUTH, GROUNDING_CASES, REFUSAL_SIGNALS,
 )
 
 
@@ -112,6 +112,25 @@ def suite_numbers():
     ok = f13["week_cash_negative"] == FORECAST_TRUTH["week_cash_negative"]
     total += 1
     passed += _check("13-week cash stays positive", ok, f"week_negative={f13['week_cash_negative']}")
+
+    # Regresion sobre el registro de controles internos (deterministico).
+    ctrl = fc.control_checks()
+    ok = ctrl["books_balanced"] == CONTROLS_TRUTH["books_balanced"]
+    total += 1
+    passed += _check("books balance (trial balance)", ok, f"max imbalance USD {ctrl['max_bs_imbalance']:.2f}")
+    ok = ctrl["n_fail"] == CONTROLS_TRUTH["n_control_failures"]
+    total += 1
+    passed += _check("no control failures (integrity)", ok,
+                     f"esperado {CONTROLS_TRUTH['n_control_failures']}, obtenido {ctrl['n_fail']}")
+    ok = ctrl["approval_exceptions"] == CONTROLS_TRUTH["approval_exceptions"]
+    total += 1
+    passed += _check("disbursement authorization exceptions", ok,
+                     f"esperado {CONTROLS_TRUTH['approval_exceptions']}, obtenido {ctrl['approval_exceptions']}")
+    exp = CONTROLS_TRUTH["approval_exceptions_total_usd"]
+    ok = abs(ctrl["approval_exceptions_total"] - exp) <= abs(exp) * NUMERIC_TOLERANCE
+    total += 1
+    passed += _check("authorization exceptions total", ok,
+                     f"esperado ~{exp:,.0f}, obtenido {ctrl['approval_exceptions_total']:,.0f}")
     return passed, total
 
 
