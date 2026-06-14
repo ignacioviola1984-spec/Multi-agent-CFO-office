@@ -4,6 +4,6 @@ python-dotenv
 requests
 numpy
 pandas
-sentence-transformers
-# Fallback de embeddings sin PyTorch:
+# Embeddings livianos para el RAG en hosts gratuitos (sin PyTorch).
+# El embedder usa sentence-transformers si esta disponible; si no, model2vec.
 model2vec

@@ -24,6 +24,11 @@ for sub in ("api-integration", "orchestration", "document-intelligence"):
     sys.path.insert(0, os.path.join(ROOT, sub))
 load_dotenv(os.path.join(ROOT, ".env"))
 
+# En produccion (host) la key llega como secret -> la pasamos al entorno
+# antes de que los modulos creen su cliente de Anthropic.
+if "ANTHROPIC_API_KEY" in st.secrets:
+    os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+
 st.set_page_config(page_title="AI Finance Engineering", layout="wide")
 st.title("AI Finance Engineering — Live Demo")
 st.caption(
