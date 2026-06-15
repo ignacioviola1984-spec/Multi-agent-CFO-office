@@ -31,23 +31,23 @@ def agent(system, prompt, max_tokens=400):
 
 
 def risk_escalations(charge_off_rate, expected_loss_pct, delinquency_rate):
-    """Flags de riesgo por severidad. HIGH cuando una metrica de perdida supera su
-    umbral critico; si no, MEDIUM cuando alguna queda en zona de atencion (>0.08).
-    Solo perdidas crediticias materiales; no se duplican riesgos de otros agentes."""
+    """Flags de riesgo por severidad, cada metrica EVALUADA DE FORMA INDEPENDIENTE:
+    HIGH si supera su umbral critico, MEDIUM si queda en zona de atencion (>0.08).
+    No se gatea una metrica detras de otra: una metrica en su propia banda escala
+    aunque otra distinta sea critica. Solo perdidas crediticias materiales."""
     esc = []
     if charge_off_rate > 0.15:
         esc.append(["HIGH", f"charge-off rate {charge_off_rate * 100:.2f}%"])
+    elif charge_off_rate > 0.08:
+        esc.append(["MEDIUM", f"charge-off rate {charge_off_rate * 100:.2f}%"])
     if expected_loss_pct > 0.12:
         esc.append(["HIGH", f"expected loss {expected_loss_pct * 100:.2f}% of on-book balance"])
+    elif expected_loss_pct > 0.08:
+        esc.append(["MEDIUM", f"expected loss {expected_loss_pct * 100:.2f}% of on-book balance"])
     if delinquency_rate > 0.12:
         esc.append(["HIGH", f"delinquency {delinquency_rate * 100:.2f}%"])
-    if not esc:
-        if charge_off_rate > 0.08:
-            esc.append(["MEDIUM", f"charge-off rate {charge_off_rate * 100:.2f}%"])
-        if expected_loss_pct > 0.08:
-            esc.append(["MEDIUM", f"expected loss {expected_loss_pct * 100:.2f}% of on-book balance"])
-        if delinquency_rate > 0.08:
-            esc.append(["MEDIUM", f"delinquency {delinquency_rate * 100:.2f}%"])
+    elif delinquency_rate > 0.08:
+        esc.append(["MEDIUM", f"delinquency {delinquency_rate * 100:.2f}%"])
     return esc
 
 
@@ -81,24 +81,29 @@ def run(ctx=None):
         pd_lines.append(f"  {grade}: PD {pd * 100:.2f}%, LGD {lgd_str}")
     pd_block = "\n".join(pd_lines) if pd_lines else "  (no grade-level data)"
 
+    esc_txt = "\n".join(f"  - [{s}] {m}" for s, m in esc) or "  (none breach the escalation thresholds)"
     facts = (
         "Credit risk / losses (LendingClub credit track).\n"
         f"Charge-off rate (matured loans): {charge_off_rate * 100:.2f}%\n"
         f"Charged-off principal: ${charged_off_usd:,.0f}\n"
         f"On-book outstanding balance: ${onbook_outstanding_usd:,.0f}\n"
-        f"Expected loss: ${expected_loss_usd:,.0f} ({expected_loss_pct * 100:.2f}% of on-book balance)\n"
+        f"Expected loss (modeled PROXY: realized PD by grade x LGD x outstanding, not a booked "
+        f"figure): ${expected_loss_usd:,.0f} ({expected_loss_pct * 100:.2f}% of on-book balance)\n"
         f"Delinquent loans: {n_delinquent} (delinquency rate {delinquency_rate * 100:.2f}%)\n"
         "PD / LGD by grade (best to worst):\n"
-        f"{pd_block}"
+        f"{pd_block}\n"
+        "Engine escalations (the deterministic verdict on what is elevated):\n"
+        f"{esc_txt}"
     )
 
     narrative = agent(
         "You are the Credit Risk / Losses analyst for a LendingClub-based credit portfolio. "
         "Write 3-4 sentences in English summarizing credit risk and losses. "
-        "Use ONLY the numbers provided; never invent or recompute any figure. "
-        "Cover the realized charge-off rate, expected loss (in USD and as % of on-book balance), "
-        "the PD-by-grade trend (how default probability rises from better to worse grades), "
-        "and the delinquency rate. Flag any metric that looks elevated.",
+        "Use ONLY the numbers provided; never invent or recompute any figure, and do NOT make an "
+        "independent 'elevated/healthy' judgment — treat the engine escalations list as the "
+        "authoritative verdict on what is elevated. Cover the realized charge-off rate, the expected "
+        "loss (state it is a documented modeled PROXY, not a booked figure), the PD-by-grade trend, "
+        "and the delinquency rate.",
         facts,
     )
 

@@ -41,21 +41,27 @@ def agent(system, prompt, max_tokens=700):
 # --- deterministic cross-checks between the credit agents -------------------
 
 def cross_checks(ctx):
-    """The analytics agents must agree with the benchmark agent on the shared
-    numbers (both derive from credit_core, so they must match — catches drift)."""
-    issues = []
-    bench = {(r["metric"], r["period"]): r["computed"]
-             for r in ctx.get("Public Benchmark", "rows", [])}
-    orig = ctx.get("Loan Portfolio", "originations_usd")
-    if orig is not None and ("originations_usd", "ALL") in bench:
-        if abs(orig - bench[("originations_usd", "ALL")]) > 1:
-            issues.append(f"originations mismatch: portfolio {orig:,.0f} vs benchmark "
-                          f"{bench[('originations_usd', 'ALL')]:,.0f}")
-    ii = ctx.get("Revenue & Unit Economics", "interest_income_usd")
-    if ii is not None and ("interest_income_usd", "ALL") in bench:
-        if abs(ii - bench[("interest_income_usd", "ALL")]) > 1:
-            issues.append(f"interest income mismatch: revenue {ii:,.0f} vs benchmark "
-                          f"{bench[('interest_income_usd', 'ALL')]:,.0f}")
+    """Storage-integrity reconciliation: each analytics agent must have STORED
+    exactly what the deterministic engine returns. We re-compute from credit_core
+    and compare against the value the agent left in shared state — this catches an
+    agent that mutated or mis-stored a figure (real assurance, not a tautology over
+    two reads of the same value)."""
+    pm, ue = cc.portfolio_metrics(), cc.unit_economics()
+    expected = [
+        ("Loan Portfolio", "originations_usd", pm["originations_usd"]),
+        ("Loan Portfolio", "n_loans", float(pm["n_loans"])),
+        ("Revenue & Unit Economics", "interest_income_usd", ue["interest_income_usd"]),
+    ]
+    issues, compared = [], 0
+    for fn, key, engine_val in expected:
+        stored = ctx.get(fn, key)
+        if stored is None:
+            issues.append(f"{fn}.{key} missing from shared state")
+            continue
+        compared += 1
+        if abs(float(stored) - engine_val) > 1:
+            issues.append(f"{fn}.{key} stored {float(stored):,.0f} != engine {engine_val:,.0f}")
+    ctx.audit("cross_check", "info", f"{compared} shared number(s) reconciled to the engine")
     return issues
 
 
@@ -94,6 +100,8 @@ def compose_cfo_narrative(ctx):
     p = ctx.get("Loan Portfolio")
     r = ctx.get("Credit Risk")
     u = ctx.get("Revenue & Unit Economics")
+    real = cc.ingestion_summary()["is_real_data"]
+    caveat = "" if real else "These figures are on the seeded SAMPLE, not real LendingClub data yet. "
     facts = (
         f"Originations: USD {p.get('originations_usd', 0):,.0f} across {p.get('n_loans', 0)} loans; "
         f"weighted-avg rate {p.get('wair', 0) * 100:.1f}%.\n"
@@ -105,13 +113,18 @@ def compose_cfo_narrative(ctx):
         f"realized yield {u.get('yield_realized', 0) * 100:.1f}%, take rate {u.get('take_rate', 0) * 100:.2f}%.\n"
         f"Risk narrative: {ctx.get('Credit Risk', 'narrative', '')}\n"
         f"Benchmark: {ctx.get('Public Benchmark', 'narrative', '')}\n"
-        f"Model risk: {ctx.get('Model Risk', 'narrative', '')}"
+        f"Model risk: {ctx.get('Model Risk', 'narrative', '')}\n"
+        f"DISCLOSURE: {caveat}Expected loss/provisions, take rate and yield are documented modeled "
+        f"PROXIES (PD x LGD and a grade-based fee proxy), not booked GAAP figures; the benchmark is "
+        f"vs placeholder filing values until the real 10-K/10-Q numbers are loaded."
     )
     return agent(
         "You are the CFO of a consumer-lending fintech. Write a board narrative of 6-8 sentences "
         "covering growth (originations), credit quality (charge-off, expected loss/provisions), unit "
         "economics (yield, take rate) and the outlook. CFO tone, direct, no filler. Use ONLY the "
-        "numbers given; do not invent figures. Write in English.",
+        "numbers given; do not invent figures. You MUST explicitly state that the expected-loss/"
+        "provision and unit-economics figures are documented modeled proxies (and sample-derived if "
+        "the disclosure says so), not booked or audited results. Write in English.",
         facts,
     )
 

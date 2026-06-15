@@ -23,6 +23,7 @@ and conservative; they are clearly flagged as proxies for the model-risk layer.
 
 import csv
 import os
+import re
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lendingclub-data")
 
@@ -73,11 +74,26 @@ def _term(x):
 
 
 def _year(issue_d):
+    """Robust 4-digit year from LendingClub issue_d shapes: 'Dec-2015', 'Dec-15',
+    bare '2015', ISO '2015-12'. Returns None if no year can be found."""
     s = str(issue_d).strip()
-    if "-" in s:
-        a, b = s.split("-", 1)
-        return int(b) if b.isdigit() else (int(a) if a.isdigit() else None)
+    m = re.search(r"(?:19|20)\d{2}", s)        # explicit 4-digit year anywhere
+    if m:
+        return int(m.group())
+    m2 = re.search(r"-(\d{2})$", s)            # 'Mon-YY' two-digit year (LC is 2007+)
+    if m2:
+        return 2000 + int(m2.group(1))
     return None
+
+
+# Real LC files prefix some terminal statuses with this; strip it so the
+# resolved/charged/delinquent classification matches (e.g. "Does not meet the
+# credit policy. Status:Charged Off" -> "Charged Off").
+def _status(r):
+    s = str(r.get("loan_status", "")).strip()
+    if s.startswith("Does not meet the credit policy") and "Status:" in s:
+        return s.split("Status:", 1)[1].strip()
+    return s
 
 
 # --- Source Ingestion ------------------------------------------------------
@@ -133,12 +149,12 @@ def data_quality():
     amts = [_f(r.get("loan_amnt")) for r in _ACC]
     outliers = sum(1 for a in amts if a <= 0 or a > 100000)
     checks.append({"id": "DQ5", "name": "Loan amount within bounds (0, 100k]",
-                   "status": "PASS" if outliers == 0 else "WARN",
+                   "status": "PASS" if outliers == 0 else ("WARN" if outliers / n < 0.05 else "FAIL"),
                    "detail": f"{outliers} outlier amount(s)"})
 
     rate_bad = sum(1 for r in _ACC if not (0 < _rate(r.get("int_rate")) < 0.5))
     checks.append({"id": "DQ6", "name": "Interest rate within (0%, 50%)",
-                   "status": "PASS" if rate_bad == 0 else "WARN",
+                   "status": "PASS" if rate_bad == 0 else ("WARN" if rate_bad / n < 0.05 else "FAIL"),
                    "detail": f"{rate_bad} out-of-range rate(s)"})
 
     n_fail = sum(1 for c in checks if c["status"] == "FAIL")
@@ -188,7 +204,7 @@ def portfolio_metrics():
         by_term[_term(r.get("term"))] = by_term.get(_term(r.get("term")), 0.0) + amt
         y = _year(r.get("issue_d"))
         by_year[y] = by_year.get(y, 0.0) + amt
-        s = r.get("loan_status", "?")
+        s = _status(r) or "?"
         by_status[s] = by_status.get(s, 0) + 1
     return {
         "n_loans": len(_ACC), "originations_usd": total, "avg_loan_usd": total / n,
@@ -202,24 +218,32 @@ def portfolio_metrics():
 # --- Credit Risk / Losses --------------------------------------------------
 
 def credit_risk():
-    matured = [r for r in _ACC if r.get("loan_status") in _RESOLVED]
-    charged = [r for r in _ACC if r.get("loan_status") == "Charged Off"]
+    matured = [r for r in _ACC if _status(r) in _RESOLVED]
+    charged = [r for r in _ACC if _status(r) == "Charged Off"]
     n_mat = len(matured) or 1
     co_rate = len(charged) / n_mat
 
-    # Realized PD and LGD by grade (from matured loans).
+    # Realized PD and LGD by grade (from matured loans). Count how often the LGD
+    # recovery-rate proxy had to be clamped to [0,1] (a data-quality signal).
     pd_grade, lgd_grade = {}, {}
+    lgd_clamped = 0
     for g in GRADES:
         gm = [r for r in matured if r.get("grade") == g]
-        gc = [r for r in gm if r.get("loan_status") == "Charged Off"]
+        gc = [r for r in gm if _status(r) == "Charged Off"]
         pd_grade[g] = (len(gc) / len(gm)) if gm else 0.0
         # LGD = 1 - recovery rate on the charged-off principal.
         co_prncp = sum(_f(r.get("funded_amnt")) - _f(r.get("total_rec_prncp")) for r in gc)
         recov = sum(_f(r.get("recoveries")) for r in gc)
-        lgd_grade[g] = max(0.0, min(1.0, 1 - (recov / co_prncp))) if co_prncp else 0.55
+        if co_prncp > 0:
+            raw = 1 - (recov / co_prncp)
+            if raw < 0 or raw > 1:
+                lgd_clamped += 1
+            lgd_grade[g] = max(0.0, min(1.0, raw))
+        else:
+            lgd_grade[g] = 0.55
 
-    # Expected loss on the ON-BOOK loans (Current/Late): outstanding x PD x LGD.
-    onbook = [r for r in _ACC if r.get("loan_status") not in _RESOLVED]
+    # Expected loss on the ON-BOOK loans (not yet resolved): outstanding x PD x LGD.
+    onbook = [r for r in _ACC if _status(r) not in _RESOLVED]
     el = 0.0
     outstanding_total = 0.0
     for r in onbook:
@@ -228,14 +252,14 @@ def credit_risk():
         g = r.get("grade", "?")
         el += outstanding * pd_grade.get(g, co_rate) * lgd_grade.get(g, 0.55)
 
-    delinquent = [r for r in _ACC if r.get("loan_status") in _DELINQUENT
-                  and r.get("loan_status") != "Charged Off"]
+    delinquent = [r for r in _ACC if _status(r) in _DELINQUENT and _status(r) != "Charged Off"]
     charged_off_usd = sum(_f(r.get("funded_amnt")) - _f(r.get("total_rec_prncp")) for r in charged)
 
     return {
         "n_matured": len(matured), "n_charged_off": len(charged),
         "charge_off_rate": co_rate, "charged_off_usd": charged_off_usd,
         "pd_by_grade": pd_grade, "lgd_by_grade": lgd_grade,
+        "lgd_clamped_grades": lgd_clamped,
         "n_onbook": len(onbook), "onbook_outstanding_usd": outstanding_total,
         "expected_loss_usd": el,
         "expected_loss_pct": (el / outstanding_total) if outstanding_total else 0.0,
@@ -299,8 +323,8 @@ def _computed_for(metric, period):
         f = sum(_f(r.get("funded_amnt")) for r in rows) or 1
         return sum(_f(r.get("funded_amnt")) * _rate(r.get("int_rate")) for r in rows) / f
     if metric == "charge_off_rate":
-        mat = [r for r in rows if r.get("loan_status") in _RESOLVED]
-        co = [r for r in mat if r.get("loan_status") == "Charged Off"]
+        mat = [r for r in rows if _status(r) in _RESOLVED]
+        co = [r for r in mat if _status(r) == "Charged Off"]
         return (len(co) / len(mat)) if mat else 0.0
     return None
 
@@ -327,24 +351,28 @@ def benchmark_vs_filings():
 # --- Model Risk / Audit ----------------------------------------------------
 
 def model_risk_review():
-    """Deterministic red-flag review of the credit model: data realness, DQ
-    failures, proxy reliance, and benchmark drift. The agent narrates this."""
-    ing, dq, bench = ingestion_summary(), data_quality(), benchmark_vs_filings()
+    """Red-flag review of the credit MODEL itself (not a re-run of other functions'
+    risks): data realness, reliance on documented proxies, and proxy stress.
+    Data-quality failures and benchmark drift are owned and escalated by the Data
+    Quality and Variance functions and are NOT re-escalated here, so the CFO sees
+    each risk from a single owner."""
+    ing = ingestion_summary()
+    cr = credit_risk()
     flags = []
     if not ing["is_real_data"]:
         flags.append(["HIGH", "running on the seeded SAMPLE, not the real LendingClub files"])
-    if dq["n_fail"] > 0:
-        flags.append(["HIGH", f"{dq['n_fail']} data-quality check(s) failed"])
-    if dq["n_warn"] > 0:
-        flags.append(["MEDIUM", f"{dq['n_warn']} data-quality warning(s)"])
+    flags.append(["MEDIUM", "expected-loss and fee figures use documented PROXIES, not disclosures"])
     if not _FIL:
         flags.append(["MEDIUM", "no public-filing benchmark loaded (public_filings.csv empty)"])
-    elif bench["max_abs_var_pct"] > 10:
+    if cr.get("lgd_clamped_grades", 0) > 0:
         flags.append(["MEDIUM",
-                      f"benchmark drift up to {bench['max_abs_var_pct']:.0f}% vs filings"])
-    flags.append(["MEDIUM", "expected-loss and fee figures use documented PROXIES, not disclosures"])
+                      f"LGD recovery rate clamped for {cr['lgd_clamped_grades']} grade(s) — possible data issue"])
     return {"flags": flags, "n_flags": len(flags),
             "assumptions": ["realized PD by grade", "LGD = 1 - recovery rate",
-                            "origination fee = grade-based proxy"],
+                            "origination fee = grade-based proxy",
+                            "Default and other late statuses are treated as on-book exposures "
+                            "(outstanding x PD x LGD), not as realized/near-certain losses"],
             "limitations": ["sample unless real files dropped",
+                            "data-quality failures and benchmark drift are owned by the Data "
+                            "Quality and Variance functions",
                             "no macroeconomic overlay", "no forward-looking ECL staging"]}

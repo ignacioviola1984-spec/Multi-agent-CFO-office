@@ -51,13 +51,9 @@ def _ctrl_traceability(ctx):
                 else "no source provenance recorded")
 
 
-def _ctrl_model_risk(ctx):
-    # Re-affirm the data is clean; the sample-data notice is surfaced but does not
-    # block (you want to run on the sample to build).
-    nf = ctx.get("Data Quality", "n_fail", 1)
-    ok = nf == 0
-    return ok, ("model-risk review complete on clean data" if ok
-                else "model-risk review on data with integrity failures")
+# Model risk is a REVIEW + sign-off stage, not a hard code gate: the data-quality
+# hard gate already lives at stage 2, so a stage-9 re-check of the same condition
+# would be a dead gate. Its value is surfacing model-risk flags + the HITL sign-off.
 
 
 # --- stage runners: maker does the work, then its reviewer signs off --------
@@ -137,7 +133,7 @@ STAGES = [
     {"id": 8, "name": "Variance & explainability", "run": _run_variance,
      "functions": ["Variance & Explainability"], "control": None},
     {"id": 9, "name": "Model risk & audit", "run": _run_model_risk,
-     "functions": ["Model Risk"], "control": _ctrl_model_risk},
+     "functions": ["Model Risk"], "control": None},
 ]
 
 
