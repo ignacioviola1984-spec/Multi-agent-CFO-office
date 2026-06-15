@@ -75,6 +75,7 @@ with open(f"{DATA}/fx_rates.csv", "w", newline="") as f:
 # ---- pnl_activity.csv (actividad mensual de P&L, en moneda local) ----
 # Base mensual en USD por entidad (escala). SaaS que crece ~6%/mes.
 pnl_rows = []
+pnl_by = {}   # P&L en USD por (entidad, periodo): para articular el balance (RE = RE_prev + NI)
 for eid,name,country,cur,scale in entities:
     base_rev_usd = 380000 * scale
     for i, p in enumerate(periods):
@@ -85,6 +86,8 @@ for eid,name,country,cur,scale in entities:
         sm   = rev_usd * random.uniform(0.55, 0.65)      # gasto comercial alto
         rd   = rev_usd * random.uniform(0.45, 0.55)
         ga   = rev_usd * random.uniform(0.25, 0.32)
+        pnl_by[(eid, p)] = {"rev": rev_usd, "cogs": cogs, "sm": sm, "rd": rd, "ga": ga,
+                            "ni": rev_usd - cogs - sm - rd - ga}
         rate = fx[cur][i]
         for code, val_usd in [("4000",rev_usd),("5000",cogs),
                               ("6000",sm),("6100",rd),("6200",ga)]:
@@ -121,40 +124,10 @@ with open(f"{DATA}/budget.csv", "w", newline="") as f:
     w = csv.writer(f); w.writerow(["entity_id","period","account_code","amount_usd"])
     w.writerows(budget_rows)
 
-# ---- balance_sheet.csv (snapshot al ultimo periodo, moneda local) ----
-# Calculamos cash, AR, FA, AP, deferred, paid-in; RE es el plug.
-last = periods[-1]
-bs_rows = []
-for eid,name,country,cur,scale in entities:
-    rate = fx[cur][-1]
-    # montos en USD, luego a local
-    paid_in = 9000000 * scale          # rondas de equity
-    fixed   = 350000 * scale
-    # AR ~ 1.8 meses de revenue del ultimo mes
-    last_rev_usd = 380000*scale*(1.06**4)
-    ar      = last_rev_usd * 1.8
-    deferred= last_rev_usd * 2.2       # SaaS: ingresos diferidos altos
-    ap      = last_rev_usd * 0.6
-    # deficit acumulado aprox: quema mensual * meses de vida
-    monthly_burn = last_rev_usd * 0.95
-    accum_deficit = monthly_burn * 14
-    # cash es el plug de liquidez: equity - deficit + working capital neto + fixed
-    cash = paid_in - accum_deficit - fixed + (deferred - ar + ap)
-    vals_usd = {
-        "1000": cash, "1100": ar, "1500": fixed,
-        "2000": ap, "2500": deferred, "3000": paid_in,
-    }
-    # RE plug para que Activo = Pasivo + Patrimonio
-    assets = vals_usd["1000"]+vals_usd["1100"]+vals_usd["1500"]
-    liab_eq = vals_usd["2000"]+vals_usd["2500"]+vals_usd["3000"]
-    re = assets - liab_eq   # signo: equity normal credito; RE negativo = deficit
-    vals_usd["3900"] = re
-    for code, v in vals_usd.items():
-        bs_rows.append([eid, last, code, round(v*rate, 2)])
-
-with open(f"{DATA}/balance_sheet.csv", "w", newline="") as f:
-    w = csv.writer(f); w.writerow(["entity_id","period","account_code","amount_local"])
-    w.writerows(bs_rows)
+last = periods[-1]          # ultimo periodo de cierre (lo usan tax y el balance)
+prev = periods[-2]          # periodo previo (para el estado de flujo de efectivo)
+# El balance se genera MAS ABAJO (despues de las facturas) para que las cuentas
+# de control (AR/AP) aten exactamente al subledger. Ver bloque balance_sheet.csv.
 
 # ---- ar_invoices.csv (facturas para aging) ----
 import datetime
@@ -232,6 +205,53 @@ for eid, name, country, cur, scale in entities:
 with open(f"{DATA}/tax_obligations.csv", "w", newline="") as f:
     w = csv.writer(f); w.writerow(["entity_id","jurisdiction","tax_type","period","amount_local","currency","due_date","status"])
     w.writerows(tax_rows)
+
+# ---- balance_sheet.csv (2 periodos, ARTICULADO) ----
+# Se genera al final, despues de las facturas, por dos razones de integridad:
+#  1) Las cuentas de control AR/AP atan EXACTAMENTE al subledger (suma de
+#     facturas abiertas) -> el cierre reconcilia limpio (sin diferencia).
+#  2) Dos periodos (prev y last) con patrimonio que ROTA por el resultado
+#     (RE_last = RE_prev + NI_last) y la CAJA como activo de cuadre. Asi los
+#     tres estados articulan: el flujo de efectivo indirecto cuadra contra la
+#     variacion real de caja (NI +/- variacion de capital de trabajo = dCaja).
+ar_open, ap_open = {}, {}
+for r in inv_rows:                       # inv_rows: [id, eid, cust, cur, amt_local, issue, due, status]
+    if r[7] == "open":
+        ar_open[r[1]] = ar_open.get(r[1], 0.0) + r[4]
+for r in ap_rows:                        # ap_rows: [id, eid, vendor, cur, amt_local, issue, due, status]
+    if r[7] == "open":
+        ap_open[r[1]] = ap_open.get(r[1], 0.0) + r[4]
+
+DEFICIT_MONTHS = 13.0                     # deficit acumulado al cierre previo (post-seed, quema caja)
+bs_rows = []
+for eid, name, country, cur, scale in entities:
+    rate04, rate05 = fx[cur][3], fx[cur][4]
+    rev04 = pnl_by[(eid, prev)]["rev"]
+    rev05 = pnl_by[(eid, last)]["rev"]
+    ni05  = pnl_by[(eid, last)]["ni"]
+    paid_in = 9_000_000 * scale          # rondas de equity (sin emision en el mes -> CFF=0)
+    fixed   = 350_000 * scale            # activo fijo (sin capex en el mes -> CFI=0)
+    deferred05, deferred04 = rev05 * 2.2, rev04 * 2.2     # SaaS: ingresos diferidos altos
+    ar05 = ar_open.get(eid, 0.0) / rate05    # = subledger AR abierto, en USD (ata exacto)
+    ap05 = ap_open.get(eid, 0.0) / rate05    # = subledger AP abierto, en USD (ata exacto)
+    g = (rev04 / rev05) if rev05 else 1.0    # capital de trabajo previo, escalado por crecimiento
+    ar04, ap04 = ar05 * g, ap05 * g
+    re04 = -(rev05 * DEFICIT_MONTHS)     # deficit acumulado al cierre previo
+    re05 = re04 + ni05                   # ARTICULACION: el patrimonio rota por el resultado del mes
+    cash04 = (ap04 + deferred04 + paid_in + re04) - (ar04 + fixed)   # caja = activo de cuadre
+    cash05 = (ap05 + deferred05 + paid_in + re05) - (ar05 + fixed)
+    for p, rate, ar, ap, deferred, re, cash in [
+        (prev, rate04, ar04, ap04, deferred04, re04, cash04),
+        (last, rate05, ar05, ap05, deferred05, re05, cash05),
+    ]:
+        vals_usd = {"1000": cash, "1100": ar, "1500": fixed,
+                    "2000": ap, "2500": deferred, "3000": paid_in, "3900": re}
+        for code, v in vals_usd.items():
+            bs_rows.append([eid, p, code, round(v * rate, 2)])
+
+with open(f"{DATA}/balance_sheet.csv", "w", newline="") as f:
+    w = csv.writer(f); w.writerow(["entity_id","period","account_code","amount_local"])
+    w.writerows(bs_rows)
 
 print("Generado en", DATA)
 for fn in sorted(os.listdir(DATA)):

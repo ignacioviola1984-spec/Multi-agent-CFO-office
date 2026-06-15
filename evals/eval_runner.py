@@ -29,7 +29,7 @@ import finance_core as fc
 from eval_set import (
     EXTRACTION_TRUTH, NUMERIC_TRUTH, NUMERIC_TOLERANCE, AR_OVERDUE_PCT_MIN,
     VARIANCE_TRUTH, VARIANCE_MATERIAL_COUNT, STRATEGIC_TRUTH, ADMIN_TRUTH,
-    FORECAST_TRUTH, CONTROLS_TRUTH, GROUNDING_CASES, REFUSAL_SIGNALS,
+    FORECAST_TRUTH, CONTROLS_TRUTH, RTR_TRUTH, GROUNDING_CASES, REFUSAL_SIGNALS,
 )
 
 
@@ -131,6 +131,36 @@ def suite_numbers():
     total += 1
     passed += _check("authorization exceptions total", ok,
                      f"esperado ~{exp:,.0f}, obtenido {ctrl['approval_exceptions_total']:,.0f}")
+
+    # Regresion sobre Record-to-Report (cierre, estados financieros, auditoria).
+    cr = fc.close_reconciliations()
+    ok = (cr["all_reconciled"] == RTR_TRUTH["close_reconciled"]
+          and cr["n_open_items"] == RTR_TRUTH["close_open_items"])
+    total += 1
+    passed += _check("close reconciles (subledgers tie to GL)", ok,
+                     f"open items {cr['n_open_items']}, articulation {cr['articulation']['status']}")
+
+    inc = fc.income_statement()
+    bs = fc.balance_sheet_statement()
+    cf = fc.cash_flow_statement()
+    exp = RTR_TRUTH["net_income_usd"]
+    ok = abs(inc["net_income"] - exp) <= abs(exp) * NUMERIC_TOLERANCE
+    total += 1
+    passed += _check("reporting net income", ok, f"esperado ~{exp:,.0f}, obtenido {inc['net_income']:,.0f}")
+    ok = (abs(bs["balance_check"]) <= 1.0) == RTR_TRUTH["balance_foots"]
+    total += 1
+    passed += _check("balance sheet foots (A = L + E)", ok, f"check USD {bs['balance_check']:.2f}")
+    ok = cf["foots"] == RTR_TRUTH["cash_flow_foots"]
+    total += 1
+    passed += _check("cash flow ties to change in cash", ok,
+                     f"statement {cf['net_change']:,.0f} vs actual {cf['actual_change']:,.0f}")
+
+    au = fc.audit_procedures()
+    ok = (au["opinion"] == RTR_TRUTH["audit_opinion"]
+          and au["n_exceptions"] == RTR_TRUTH["audit_exceptions"])
+    total += 1
+    passed += _check("audit opinion unqualified", ok,
+                     f"opinion {au['opinion']}, {au['n_exceptions']} exception(s)")
     return passed, total
 
 

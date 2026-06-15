@@ -191,11 +191,44 @@ Bitacora de avance, fase por fase.
   limpios -> valen como invariantes (probados failables por tamper test), pero un
   tie-out de fuentes independientes es el control con mas valor de aseguramiento.
 
+### Fase 7.5 — Record-to-Report: Accounting & Close + Reporting + Audit  [OK]
+- Cierra el loop punta a punta: registrar -> CERRAR -> REPORTAR -> analizar ->
+  controlar -> AUDITAR. Tres agentes nuevos sobre una fundacion de datos nueva.
+- Fundacion de datos (generate_data.py): balance ARTICULADO de 2 periodos. Las
+  cuentas de control AR/AP se generan = al subledger (atan exacto), el patrimonio
+  ROTA por el resultado (RE_05 = RE_04 + NI_05) y la caja es el activo de cuadre.
+  Asi los 3 estados ATAN y el flujo de efectivo CUADRA contra la variacion de
+  caja. Solo cambio balance_sheet.csv (stream aleatorio intacto -> el resto de
+  los numeros no se movio). Rebaseline: caja 7.09M -> 7.50M; caja-fin-13s -> 5.55M.
+- Accounting & Close (sub de "Accounting & Reporting"): concilia subledger AR/AP
+  vs cuenta de control del GL + articulacion del patrimonio. Escala solo si NO
+  concilia (en libros limpios, 0 flags; el valor es PROBAR que ata).
+- Financial Reporting (sub de "Accounting & Reporting"): produce los 3 estados
+  (resultados, balance, flujo de efectivo indirecto). Escala solo integridad
+  (balance no cuadra / flujo no ata).
+- Accounting & Reporting (supervisor, como Administration): corre Close -> Reporting
+  y consolida en un reporte. Jerarquia de 2 niveles.
+- Audit (top-level, INDEPENDIENTE - tercera linea): re-ejecuta conciliaciones,
+  re-piesa el balance, verifica articulacion y que el flujo cuadre, y vouchea
+  desembolsos de alto valor. Emite OPINION (unqualified/qualified/adverse). No
+  re-escala partidas (eso es del cierre); su salida propia es la opinion.
+- finance_core: _bs_usd, subledger_totals_usd, close_reconciliations,
+  income_statement, balance_sheet_statement, cash_flow_statement, audit_procedures.
+  cash_total_usd ahora filtra por periodo (el balance tiene 2 periodos).
+- CFO orquestador: 8 etapas [1/8]..[8/8]; 2 cross-checks nuevos (net income de
+  Reporting == op income del Controller; caja de Reporting == caja de Treasury);
+  board pack incorpora cierre/reporting/audit. Corrida 2026-05: cierre conciliado,
+  estados producidos y atados, opinion sin salvedades; sin ruido de escalamientos.
+- evals: 5 checks nuevos (cierre concilia, net income, balance cuadra, flujo ata,
+  opinion sin salvedades). Suite numbers 22/22. Tamper test: romper la cuenta de
+  control AR dispara open item en el cierre y opinion ADVERSE en auditoria.
+
 ## Backlog del departamento (multi-agente, hacia el "full finance department")
 - Faltantes mapeados (ver chat de gap analysis): Strategic Finance [HECHO],
   Administration/AR/AP/Tax [HECHO], Internal Controls [HECHO], profundizar
-  Treasury (cash forecast 13s) [HECHO]; faltan: Finance Compliance,
-  Audit (agente), Accounting&Close (recons/JE/accruals), AgentOps (monitoreo +
+  Treasury (cash forecast 13s) [HECHO], Accounting & Close [HECHO], Financial
+  Reporting (3 estados) [HECHO], Audit [HECHO]; faltan (profundidad, no pilares):
+  Finance Compliance regulatorio, Payroll/costo de gente, AgentOps (monitoreo +
   CI), Finance Data (capa unificada).
 - Demo publica (cfo-demo): por ahora muestra 4 agentes; falta sumar la pata de
   Administration al snapshot/app y re-deployar (pendiente, opcional).

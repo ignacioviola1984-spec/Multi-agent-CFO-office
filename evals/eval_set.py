@@ -19,7 +19,7 @@ EXTRACTION_TRUTH = {
 #    aca actuan como test de REGRESION: si un cambio los mueve, el eval falla.
 NUMERIC_TRUTH = {
     "operating_income_2026_05_usd": -756823,
-    "cash_usd": 7092891,
+    "cash_usd": 7504278,    # balance articulado: caja = activo de cuadre (AR/AP atan al subledger)
 }
 NUMERIC_TOLERANCE = 0.01            # 1%
 AR_OVERDUE_PCT_MIN = 90            # la cartera vencida debe superar el 90%
@@ -50,7 +50,7 @@ ADMIN_TRUTH = {
 
 # 2e) Forecast de caja a 13 semanas (Treasury). Deterministico -> regresion.
 FORECAST_TRUTH = {
-    "ending_cash_13w_usd": 5140221,   # caja al final de la semana 13
+    "ending_cash_13w_usd": 5551607,   # caja al final de la semana 13
     "week_cash_negative": None,        # no se vuelve negativa en el horizonte
 }
 
@@ -63,6 +63,20 @@ CONTROLS_TRUTH = {
     "n_control_failures": 0,              # ninguna falla de integridad (C1-C3)
     "approval_exceptions": 6,             # pagos sobre el tope de autorizacion (C5)
     "approval_exceptions_total_usd": 217269,
+}
+
+# 2g) Record-to-Report: cierre, estados financieros y auditoria. Deterministicos
+#     -> regresion sobre Accounting & Close, Financial Reporting y Audit. El
+#     balance se genera articulado, asi que el cierre RECONCILIA, los 3 estados
+#     ATAN y el flujo de efectivo CUADRA -> la auditoria opina sin salvedades.
+RTR_TRUTH = {
+    "close_reconciled": True,    # subledgers AR/AP atan al GL y RE articula
+    "close_open_items": 0,
+    "net_income_usd": -756823,   # resultado neto == resultado operativo (sin lineas debajo)
+    "balance_foots": True,       # A = P + PN
+    "cash_flow_foots": True,     # el flujo de efectivo ata a la variacion de caja
+    "audit_opinion": "unqualified",
+    "audit_exceptions": 0,
 }
 
 # 3) Guardrail de grounding: preguntas SIN respuesta en los documentos.

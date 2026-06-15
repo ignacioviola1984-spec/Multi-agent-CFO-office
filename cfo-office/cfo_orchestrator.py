@@ -7,15 +7,17 @@ deterministicos, consolida los escalamientos por severidad, y antes de fijar
 el board pack final pide UNA sola aprobacion humana (HITL). Persiste todo a
 cfo_state.json.
 
-  1) Controller        -> revisa el cierre y margenes
-  2) Treasury          -> caja, burn, runway, forecast 13 semanas
-  3) Administration    -> sub-orquesta AR, AP y Tax (capital de trabajo + compliance)
-  4) FP&A              -> forecast, variance MoM, variance vs presupuesto, anomalias
-  5) Strategic Finance -> run-rate, Rule of 40, burn multiple, camino a breakeven
-  6) Internal Controls -> aseguramiento: integridad de libros, FX, corte, autorizaciones
-  7) cross-checks: los agentes deben concordar en los numeros compartidos
-  8) consolidar escalamientos + UN gate humano
-  9) board pack consolidado + acciones (Claude), fijados solo si el humano aprueba
+  1) Controller            -> revisa el cierre y margenes
+  2) Treasury              -> caja, burn, runway, forecast 13 semanas
+  3) Administration        -> sub-orquesta AR, AP y Tax (capital de trabajo + compliance)
+  4) Accounting & Reporting-> sub-orquesta el cierre (recon) y los 3 estados financieros
+  5) FP&A                  -> forecast, variance MoM, variance vs presupuesto, anomalias
+  6) Strategic Finance     -> run-rate, Rule of 40, burn multiple, camino a breakeven
+  7) Internal Controls     -> aseguramiento: integridad de libros, FX, corte, autorizaciones
+  8) Audit                 -> re-ejecuta el cierre/estados de forma independiente y opina
+  9) cross-checks: los agentes deben concordar en los numeros compartidos
+ 10) consolidar escalamientos + UN gate humano
+ 11) board pack consolidado + acciones (Claude), fijados solo si el humano aprueba
 
 Cada agente deja su analisis y sus flags en el estado compartido; el CFO los
 consume. Los numeros los calculan los agentes por codigo (finance_core); el
@@ -41,18 +43,22 @@ from shared_state import CFOContext
 import controller_agent
 import treasury_agent
 import administration_agent
+import accounting_reporting_agent
 import fpa_agent
 import strategic_finance_agent
 import internal_controls_agent
+import audit_agent
 
 load_dotenv(os.path.join(ROOT, ".env"))
 client = Anthropic()
 MODEL = "claude-sonnet-4-6"
 
 PERIOD = "2026-05"
-# Administration entra como un solo reporte: ya consolida AR/AP/Tax adentro.
-AGENTS = ["Controller", "Treasury", "Administration", "FP&A", "Strategic Finance",
-          "Internal Controls"]
+# Administration y Accounting & Reporting entran como un solo reporte cada uno:
+# ya consolidan sus sub-agentes adentro (AR/AP/Tax y Close/Reporting). Audit es
+# independiente (tercera linea) y entra como par de los demas.
+AGENTS = ["Controller", "Treasury", "Administration", "Accounting & Reporting",
+          "FP&A", "Strategic Finance", "Internal Controls", "Audit"]
 
 
 def agent(system, prompt, max_tokens=700):
@@ -113,6 +119,23 @@ def cross_checks(ctx):
     except (KeyError, TypeError):
         issues.append("missing data to reconcile AR with Administration")
 
+    # 5) el resultado neto de Reporting debe atarse al op income del Controller
+    try:
+        ni_rep = ctx.get("Financial Reporting")["income_statement"]["net_income"]
+        oi_ctrl = ctrl["pnl"]["operating_income"]
+        if abs(ni_rep - oi_ctrl) > 1:
+            issues.append(f"net income mismatch: Controller {oi_ctrl:,.0f} vs Reporting {ni_rep:,.0f}")
+    except (KeyError, TypeError):
+        issues.append("missing data to reconcile net income with Financial Reporting")
+
+    # 6) la caja del balance de Reporting debe atarse a la caja de Treasury
+    try:
+        cash_rep = ctx.get("Financial Reporting")["balance_sheet"]["assets"]["cash"]
+        if abs(cash_rep - trez["cash"]) > 1:
+            issues.append(f"cash mismatch: Treasury {trez['cash']:,.0f} vs Reporting {cash_rep:,.0f}")
+    except (KeyError, TypeError):
+        issues.append("missing data to reconcile cash with Financial Reporting")
+
     return issues
 
 
@@ -147,20 +170,24 @@ def compose_board_pack(ctx):
     ]))
     strat = ctx.get("Strategic Finance", "narrative", "")
     admin = ctx.get("Administration", "narrative", "")
+    acctrep = ctx.get("Accounting & Reporting", "narrative", "")
     controls = ctx.get("Internal Controls", "narrative", "")
+    audit = ctx.get("Audit", "narrative", "")
     prompt = (
         f"--- Controller (close) ---\n{ctrl}\n\n"
         f"--- Treasury (liquidity) ---\n{trez}\n\n"
         f"--- Administration (AR / AP / Tax) ---\n{admin}\n\n"
+        f"--- Accounting & Reporting (close + financial statements) ---\n{acctrep}\n\n"
         f"--- FP&A (MoM variance, budget variance, anomalies) ---\n{fpa_bits}\n\n"
         f"--- Strategic Finance (growth, efficiency, path to breakeven) ---\n{strat}\n\n"
         f"--- Internal Controls (assurance) ---\n{controls}\n\n"
+        f"--- Audit (independent opinion) ---\n{audit}\n\n"
         "Write the consolidated board pack for the period."
     )
     return agent(
-        "You are the CFO. With the inputs from Controller, Treasury, Administration, FP&A, "
-        "Strategic Finance and Internal Controls, write an executive board pack of 5-7 sentences, "
-        "CFO tone, direct, no filler. Do not add new numbers. Write in English.",
+        "You are the CFO. With the inputs from Controller, Treasury, Administration, Accounting & "
+        "Reporting, FP&A, Strategic Finance, Internal Controls and Audit, write an executive board "
+        "pack of 6-8 sentences, CFO tone, direct, no filler. Do not add new numbers. Write in English.",
         prompt,
     )
 
@@ -191,18 +218,22 @@ def run(period=PERIOD):
     ctx = CFOContext()
     ctx.audit("CFO", "start", f"running the office for {period}")
 
-    print("\n[1/6] Controller...")
+    print("\n[1/8] Controller...")
     controller_agent.run(ctx)
-    print("\n[2/6] Treasury...")
+    print("\n[2/8] Treasury...")
     treasury_agent.run(ctx)
-    print("\n[3/6] Administration (AR / AP / Tax)...")
+    print("\n[3/8] Administration (AR / AP / Tax)...")
     administration_agent.run(ctx)
-    print("\n[4/6] FP&A...")
+    print("\n[4/8] Accounting & Reporting (close + statements)...")
+    accounting_reporting_agent.run(ctx)
+    print("\n[5/8] FP&A...")
     fpa_agent.run(ctx)
-    print("\n[5/6] Strategic Finance...")
+    print("\n[6/8] Strategic Finance...")
     strategic_finance_agent.run(ctx)
-    print("\n[6/6] Internal Controls...")
+    print("\n[7/8] Internal Controls...")
     internal_controls_agent.run(ctx)
+    print("\n[8/8] Audit (independent assurance)...")
+    audit_agent.run(ctx)
 
     # Cross-checks between agents (before escalating or writing).
     issues = cross_checks(ctx)

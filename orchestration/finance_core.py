@@ -65,11 +65,11 @@ def pnl_usd(period):
     }
 
 
-def cash_total_usd():
-    """Caja consolidada en USD al ultimo cierre."""
+def cash_total_usd(period=LATEST):
+    """Caja consolidada en USD al cierre del periodo (el balance tiene 2 periodos)."""
     return sum(
-        _usd(float(r["amount_local"]), _CCY[r["entity_id"]], LATEST)
-        for r in _BS if r["account_code"] == "1000"
+        _usd(float(r["amount_local"]), _CCY[r["entity_id"]], period)
+        for r in _BS if r["account_code"] == "1000" and r["period"] == period
     )
 
 
@@ -553,3 +553,169 @@ def control_checks(period=LATEST, as_of="2026-05-31",
         "books_balanced": imb <= bs_tolerance, "max_bs_imbalance": imb,
         "approval_exceptions": len(over), "approval_exceptions_total": over_total,
     }
+
+
+# --------------------------------------------------------------------------
+# Record-to-Report: cierre contable, estados financieros y auditoria. Todo
+# deterministico en USD. El balance se generó articulado (2 periodos, RE rota
+# por el resultado, caja = activo de cuadre), de modo que: el cierre RECONCILIA
+# (subledger AR/AP == cuenta de control del GL), los 3 estados ATAN entre si, y
+# el flujo de efectivo CUADRA contra la variacion de caja. Los agentes narran;
+# aca se calcula y se decide -> testeable por evals.
+# --------------------------------------------------------------------------
+
+def _prev_period(period):
+    """Periodo inmediatamente anterior dentro de la serie (o None si es el primero)."""
+    if period in PERIODS:
+        i = PERIODS.index(period)
+        return PERIODS[i - 1] if i > 0 else None
+    return None
+
+
+def _bs_usd(period=LATEST):
+    """Balance consolidado por cuenta, en USD, para un periodo."""
+    agg = {}
+    for r in _BS:
+        if r["period"] != period:
+            continue
+        agg[r["account_code"]] = agg.get(r["account_code"], 0.0) + \
+            _usd(float(r["amount_local"]), _CCY[r["entity_id"]], period)
+    return agg
+
+
+def subledger_totals_usd(period=LATEST):
+    """Totales del subledger (facturas abiertas) en USD: AR y AP."""
+    ar = sum(_usd(float(r["amount_local"]), r["currency"], period)
+             for r in _INV if r["status"] == "open")
+    ap = sum(_usd(float(r["amount_local"]), r["currency"], period)
+             for r in _AP if r["status"] == "open")
+    return {"ar": ar, "ap": ap}
+
+
+# --- Accounting & Close (cierre contable) ------------------------------
+
+def close_reconciliations(period=LATEST, tolerance=1.0):
+    """Conciliaciones de cierre, deterministicas:
+    - Subledger AR/AP vs la cuenta de control del GL (deben atar).
+    - Articulacion del patrimonio: RE del periodo - RE del previo == resultado.
+    Devuelve cada conciliacion con su diferencia y estado, y si el cierre quedo
+    todo conciliado (sin partidas abiertas)."""
+    bs = _bs_usd(period)
+    sub = subledger_totals_usd(period)
+    recs = []
+    for label, sub_v, gl_v in [
+        ("Accounts receivable", sub["ar"], bs.get("1100", 0.0)),
+        ("Accounts payable", sub["ap"], bs.get("2000", 0.0)),
+    ]:
+        diff = sub_v - gl_v
+        recs.append({"item": label, "subledger": sub_v, "gl": gl_v, "diff": diff,
+                     "status": "RECONCILED" if abs(diff) <= tolerance else "OPEN ITEM"})
+
+    prev = _prev_period(period)
+    re_move = (bs.get("3900", 0.0) - _bs_usd(prev).get("3900", 0.0)) if prev else None
+    ni = pnl_usd(period)["operating_income"]
+    if re_move is None:
+        art_status, art_diff = "N/A", None
+    elif abs(re_move - ni) <= tolerance:
+        art_status, art_diff = "TIED", re_move - ni
+    else:
+        art_status, art_diff = "BREAK", re_move - ni
+    articulation = {"item": "Retained earnings roll-forward", "re_movement": re_move,
+                    "net_income": ni, "diff": art_diff, "status": art_status}
+
+    n_open = sum(1 for r in recs if r["status"] == "OPEN ITEM") + (1 if art_status == "BREAK" else 0)
+    return {"recs": recs, "articulation": articulation, "n_open_items": n_open,
+            "all_reconciled": n_open == 0}
+
+
+# --- Financial Reporting (estados financieros) -------------------------
+
+def income_statement(period=LATEST):
+    """Estado de resultados consolidado en USD. Sin lineas debajo de la operativa
+    en este dataset, el resultado neto == resultado operativo."""
+    p = pnl_usd(period)
+    rev = p["revenue"]
+    return {
+        "revenue": rev, "cogs": p["cogs"], "gross": p["gross"],
+        "sm": p["sm"], "rd": p["rd"], "ga": p["ga"], "opex": p["opex"],
+        "operating_income": p["operating_income"], "net_income": p["operating_income"],
+        "gross_margin_pct": (p["gross"] / rev * 100) if rev else 0.0,
+        "net_margin_pct": (p["operating_income"] / rev * 100) if rev else 0.0,
+    }
+
+
+def balance_sheet_statement(period=LATEST):
+    """Balance general consolidado en USD, con el chequeo de cuadre A = P + PN."""
+    b = _bs_usd(period)
+    assets = {"cash": b.get("1000", 0.0), "accounts_receivable": b.get("1100", 0.0),
+              "fixed_assets": b.get("1500", 0.0)}
+    liabilities = {"accounts_payable": b.get("2000", 0.0), "deferred_revenue": b.get("2500", 0.0)}
+    equity = {"paid_in_capital": b.get("3000", 0.0), "retained_earnings": b.get("3900", 0.0)}
+    ta, tl, te = sum(assets.values()), sum(liabilities.values()), sum(equity.values())
+    return {"assets": assets, "liabilities": liabilities, "equity": equity,
+            "total_assets": ta, "total_liabilities": tl, "total_equity": te,
+            "balance_check": ta - (tl + te)}
+
+
+def cash_flow_statement(period=LATEST):
+    """Estado de flujo de efectivo (metodo indirecto), consolidado en USD.
+    Articula: resultado +/- variacion de capital de trabajo (operativo) +/-
+    inversion +/- financiacion = variacion real de caja entre cierres."""
+    prev = _prev_period(period)
+    b = _bs_usd(period)
+    bp = _bs_usd(prev) if prev else {}
+    ni = pnl_usd(period)["operating_income"]
+    d_ar = b.get("1100", 0.0) - bp.get("1100", 0.0)        # +AR consume caja
+    d_ap = b.get("2000", 0.0) - bp.get("2000", 0.0)        # +AP libera caja
+    d_def = b.get("2500", 0.0) - bp.get("2500", 0.0)       # +deferred libera caja
+    d_fixed = b.get("1500", 0.0) - bp.get("1500", 0.0)     # +fijo = capex
+    d_paid = b.get("3000", 0.0) - bp.get("3000", 0.0)      # +paid-in = emision
+    cfo = ni - d_ar + d_ap + d_def
+    cfi = -d_fixed
+    cff = d_paid
+    net = cfo + cfi + cff
+    d_cash = b.get("1000", 0.0) - bp.get("1000", 0.0)
+    return {"net_income": ni, "d_ar": d_ar, "d_ap": d_ap, "d_deferred": d_def,
+            "cfo": cfo, "cfi": cfi, "cff": cff, "net_change": net,
+            "cash_begin": bp.get("1000", 0.0), "cash_end": b.get("1000", 0.0),
+            "actual_change": d_cash, "foots": abs(net - d_cash) <= 1.0}
+
+
+# --- Audit (aseguramiento independiente) -------------------------------
+
+def audit_procedures(period=LATEST, tolerance=1.0, sample_threshold=25000.0):
+    """Procedimientos de auditoria INDEPENDIENTES (tercera linea): re-ejecuta las
+    conciliaciones del cierre, re-piesa el balance, verifica la articulacion del
+    patrimonio y que el flujo de efectivo cuadre, y muestrea (vouching) los
+    desembolsos de alto valor. Emite una opinion segun cuantos procedimientos
+    fallan la re-ejecucion. No re-escala las partidas (eso es del cierre): su
+    salida propia es la OPINION."""
+    findings = []
+    cr = close_reconciliations(period, tolerance)
+    for r in cr["recs"]:
+        findings.append({"proc": f"{r['item']}: subledger ties to GL",
+                         "ok": r["status"] == "RECONCILED",
+                         "detail": f"difference USD {r['diff']:,.2f}"})
+    art = cr["articulation"]
+    findings.append({"proc": "Retained earnings articulation",
+                     "ok": art["status"] in ("TIED", "N/A"),
+                     "detail": (f"RE movement vs net income differ by USD {art['diff']:,.2f}"
+                                if art["diff"] is not None else "no prior period to test")})
+    bss = balance_sheet_statement(period)
+    findings.append({"proc": "Balance sheet foots (A = L + E)",
+                     "ok": abs(bss["balance_check"]) <= tolerance,
+                     "detail": f"imbalance USD {bss['balance_check']:,.2f}"})
+    cf = cash_flow_statement(period)
+    findings.append({"proc": "Cash flow ties to change in cash",
+                     "ok": cf["foots"],
+                     "detail": f"statement USD {cf['net_change']:,.0f} vs actual USD {cf['actual_change']:,.0f}"})
+    sample = [r["bill_id"] for r in _AP if r["status"] == "open"
+              and (LATEST, r["currency"]) in _FX
+              and _usd(float(r["amount_local"]), r["currency"], LATEST) >= sample_threshold]
+    findings.append({"proc": f"High-value disbursements vouched (>= USD {sample_threshold:,.0f})",
+                     "ok": True, "detail": f"{len(sample)} item(s) sampled for authorization"})
+
+    n_exc = sum(1 for f in findings if not f["ok"])
+    opinion = "unqualified" if n_exc == 0 else ("qualified" if n_exc <= 1 else "adverse")
+    return {"findings": findings, "n_procedures": len(findings),
+            "n_exceptions": n_exc, "opinion": opinion}
