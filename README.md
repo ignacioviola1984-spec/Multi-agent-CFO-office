@@ -6,8 +6,10 @@ model with reliability controls, and a multi-agent CFO office that runs the
 close over a shared, auditable state. Built by a finance operator with 17
 years of experience, now building the systems.
 
-> **See it run:** [`CASE-STUDY.md`](CASE-STUDY.md) walks one real month-end close
-> end to end (real, code-computed output). **Work with me:** [`OFFERING.md`](OFFERING.md).
+> **See it run:** [`CASE-STUDY.md`](CASE-STUDY.md) walks a month-end close end to end,
+> and [`CREDIT-CASE-STUDY.md`](CREDIT-CASE-STUDY.md) runs the operating model on the
+> **real LendingClub loan book** (2.26M loans) benchmarked against its SEC filings.
+> **Work with me:** [`OFFERING.md`](OFFERING.md).
 
 ## Projects
 

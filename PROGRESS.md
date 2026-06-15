@@ -323,7 +323,15 @@ Bitacora de avance, fase por fase.
   acumulando solo agregados -> memoria O(buckets). Verificado: 1.2M filas en 81 MB
   pico (vs varios GB si se cargara como lista); numeros del sample IDENTICOS;
   API publica sin cambios (agentes/etapas intactos). Perilla opcional LC_MAX_ROWS.
-  Pendiente: data real de Nacho (la baja de Kaggle), corrida con LLM, diagrama.
+- CORRIDA REAL (Nacho subio el CSV de Kaggle): el modelo corrio de punta a punta
+  sobre el book REAL completo (2.260.701 prestamos, $34 bn originations) en ~2 min.
+  9/9 etapas + 9/9 firmas + gate CFO + board pack real. PD por grade monotona
+  6.04%(A)->49.67%(G). Benchmark vs 10-K REAL (SEC, 8-K Ex 99.1): originations del
+  dataset -26/-27% vs reportado los 3 anios (subset estable ~73%, explicado por el
+  agente de Variance). DQ: 2 pass/4 warn/0 fail (las 33 filas-basura de LC, no
+  bloquean). Bug de data real cazado y arreglado (None vintage por fechas malas).
+  public_filings.csv con cifras reales citadas. Artefacto: CREDIT-CASE-STUDY.md.
+  Pendiente opcional: diagrama del credit track.
 
 ## Siguiente
 
