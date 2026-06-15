@@ -255,6 +255,15 @@ Bitacora de avance, fase por fase.
 ## Siguiente
 
 ### Fase 8 (planeada) — Modelo de implementacion REAL: HITL por agente
+- PRINCIPIO DE DISENO (Nacho, firme 2026-06-14): arriba de CADA agente TIENE que
+  haber un HITL con conocimiento profundo y expertise en el area. "Solo asi va a
+  funcionar" -> es la CONDICION de viabilidad, no opcional. El AI no tiene el
+  juicio de dominio; el experto lo aporta y es el humano responsable de esa funcion.
+- Reframe que habilita: NO es "8 agentes reemplazan al equipo + 1 CFO aprueba",
+  es un MULTIPLICADOR sobre cada experto (el agente hace el trabajo pesado -datos,
+  conciliacion, draft, excepciones- y el experto valida con juicio y firma). Mismos
+  (o menos, mas apalancados) humanos, mucho mas rapidos. Es lo que lo hace confiable
+  Y adoptable: el experto confia en una herramienta que lo potencia y que controla.
 - Decision de diseno (Nacho, 17 anios en finanzas, 2026-06-14): el modelo actual
   (8 agentes hacen el trabajo + UN solo gate del CFO) es una VISION a futuro, no
   realizable en la practica con los modelos de hoy. Un CFO es generalista ("toca
