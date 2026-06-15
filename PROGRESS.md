@@ -254,6 +254,21 @@ Bitacora de avance, fase por fase.
 
 ## Siguiente
 
+### Fase 8 (planeada) — Modelo de implementacion REAL: HITL por agente
+- Decision de diseno (Nacho, 17 anios en finanzas, 2026-06-14): el modelo actual
+  (8 agentes hacen el trabajo + UN solo gate del CFO) es una VISION a futuro, no
+  realizable en la practica con los modelos de hoy. Un CFO es generalista ("toca
+  de oido" contabilidad, impuestos, planning); no se le puede delegar la
+  aprobacion de TODO el flujo operativo financiero.
+- Refactor: poner un HITL arriba de CADA agente (revision por experto de dominio
+  -contabilidad revisa el cierre, impuestos revisa tax, tesoreria revisa treasury,
+  FP&A revisa planning, etc.: maker-checker por funcion). El gate del CFO pasa a
+  ser una firma final, mas liviana, sobre el board pack consolidado + lo material/
+  transversal, no una revision de cada detalle operativo.
+- Al implementarlo, REVISAR el discurso actual de "un solo gate humano" (README,
+  cfo-office/README, PRODUCTION-READINESS.md): ese principio se revisa cuando el
+  refactor exista, no antes.
+
 ### Fase 6.2 — Deploy + demo
 - Subir online (host gratis) para URL publica.
 - Grabar 3 videos POV (guiones listos), uno por proyecto.
