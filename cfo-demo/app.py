@@ -85,7 +85,7 @@ def signoff(name):
 
 st.markdown("""
 <style>
-.small { color:#6b7280; font-size:0.9rem; }
+.small { color:var(--text-color); opacity:0.9; font-size:0.9rem; }
 .card { background:rgba(127,127,127,0.06); border:1px solid rgba(127,127,127,0.18);
         border-radius:12px; padding:14px 16px; margin-bottom:8px; }
 .role { font-weight:700; font-size:0.98rem; }
