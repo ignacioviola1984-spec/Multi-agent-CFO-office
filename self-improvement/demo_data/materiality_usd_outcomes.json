@@ -1,0 +1,12 @@
+{
+  "_DEMONSTRATION_DATA": "Synthetic labeled escalation outcomes for the USD materiality threshold, for demonstration only. NOT real data. Each row: a budget variance line, its absolute USD magnitude, and whether it actually mattered (was worth escalating). The calibrator picks the F1-optimal threshold over these labels.",
+  "param": "materiality_usd_threshold",
+  "outcomes": [
+    {"line": "G&A", "magnitude": 20935, "mattered": true},
+    {"line": "Operating income", "magnitude": 38938, "mattered": true},
+    {"line": "Sales & marketing", "magnitude": 25068, "mattered": false},
+    {"line": "Total opex", "magnitude": 32173, "mattered": false},
+    {"line": "R&D", "magnitude": 13829, "mattered": false},
+    {"line": "Cost of revenue", "magnitude": 7043, "mattered": false}
+  ]
+}

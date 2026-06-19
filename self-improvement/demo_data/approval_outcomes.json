@@ -1,0 +1,12 @@
+{
+  "_DEMONSTRATION_DATA": "Synthetic labeled disbursement outcomes for the approval (authorization-review) threshold, for demonstration only. NOT real data. Each row: an open supplier disbursement, its USD amount, and whether it actually needed senior authorization review. The calibrator picks the F1-optimal threshold over these labels.",
+  "param": "approval_threshold_usd",
+  "outcomes": [
+    {"payment": "AP-1", "magnitude": 41000, "mattered": true},
+    {"payment": "AP-2", "magnitude": 33000, "mattered": true},
+    {"payment": "AP-3", "magnitude": 28000, "mattered": true},
+    {"payment": "AP-4", "magnitude": 26000, "mattered": false},
+    {"payment": "AP-5", "magnitude": 19000, "mattered": false},
+    {"payment": "AP-6", "magnitude": 12000, "mattered": false}
+  ]
+}

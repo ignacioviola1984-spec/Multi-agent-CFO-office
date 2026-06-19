@@ -12,10 +12,35 @@ Aca lo mantengo separado para no tocar el server ya validado.
 
 import csv
 import os
+import json
 import datetime
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "finance-mcp", "data")
 LATEST = "2026-05"
+
+
+# --------------------------------------------------------------------------
+# Bounded self-improvement hook (VALUES ONLY, never formulas).
+# A small, explicit set of operational PARAMETERS (the AR collection rate, the
+# materiality thresholds, and the disbursement-authorization threshold) may be
+# calibrated within bounds by the self-improvement system (../self-improvement/).
+# This reader returns the active champion value from that system's champion
+# store, or the original hardcoded default if the store is absent or the name is
+# not present, so behavior is IDENTICAL by default. No formula reads through
+# here; anything not wired through _registry_param is frozen and cannot be
+# changed by that system.
+# --------------------------------------------------------------------------
+def _registry_param(name, default):
+    try:
+        state_dir = os.environ.get("SELFIMPROVE_STATE_DIR") or os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "self-improvement", "state")
+        with open(os.path.join(state_dir, "champions.json"), encoding="utf-8") as f:
+            champions = json.load(f).get("champions", {})
+        if name in champions:
+            return type(default)(champions[name]["value"])
+    except Exception:
+        pass
+    return default
 
 
 def _load(name):
@@ -186,7 +211,11 @@ def variance_usd(period):
     ]
 
 
-def material_variances(period, pct_threshold=5.0, usd_threshold=20000.0):
+MATERIALITY_PCT_THRESHOLD = _registry_param("materiality_pct_threshold", 5.0)
+MATERIALITY_USD_THRESHOLD = _registry_param("materiality_usd_threshold", 20000.0)
+
+
+def material_variances(period, pct_threshold=MATERIALITY_PCT_THRESHOLD, usd_threshold=MATERIALITY_USD_THRESHOLD):
     """Lineas cuya varianza es material: |%| >= umbral Y |$| >= umbral.
 
     El doble umbral evita marcar lineas chicas con % alto o lineas grandes con
@@ -328,7 +357,7 @@ def tax_metrics(as_of="2026-05-31"):
 # Forecast directo de caja a 13 semanas (Treasury). Deterministico, en USD.
 # --------------------------------------------------------------------------
 
-AR_COLLECTION_RATE = 0.90   # 10% de prevision sobre cobranzas
+AR_COLLECTION_RATE = _registry_param("ar_collection_rate", 0.90)   # 10% de prevision sobre cobranzas (calibrable dentro de banda; ver ../self-improvement/)
 
 
 def cash_forecast_13w(start="2026-06-01"):
@@ -416,7 +445,7 @@ _BS_TYPE = {"1000": "A", "1100": "A", "1500": "A",
 # (segregacion de funciones), no afirma que esten sin autorizar. Se calibra por
 # encima del limite de gasto operativo documentado (politica T&E: >USD 5k aprueba
 # VP Finanzas) como umbral de autorizacion senior para desembolsos a proveedores.
-APPROVAL_THRESHOLD_USD = 25000.0
+APPROVAL_THRESHOLD_USD = _registry_param("approval_threshold_usd", 25000.0)
 
 
 def _trial_balance_imbalance(period=LATEST):

@@ -1,0 +1,10 @@
+{
+  "_DEMONSTRATION_DATA": "Synthetic AR collection outcomes, for demonstrating the self-improvement loop only. NOT real dLocal or company data. Each row is a closed period: what the 13-week forecast assumed was collectible vs what was actually collected. The realized rate here is a clean 0.92, so the deterministic calibrator proposes ar_collection_rate 0.90 -> 0.92 (within the 0.03 step and the [0.80, 0.98] bounds).",
+  "param": "ar_collection_rate",
+  "outcomes": [
+    {"period": "2026-02", "forecast_collectible": 1000000, "actual_collected": 920000},
+    {"period": "2026-03", "forecast_collectible": 1200000, "actual_collected": 1104000},
+    {"period": "2026-04", "forecast_collectible": 900000, "actual_collected": 828000},
+    {"period": "2026-05", "forecast_collectible": 1100000, "actual_collected": 1012000}
+  ]
+}
