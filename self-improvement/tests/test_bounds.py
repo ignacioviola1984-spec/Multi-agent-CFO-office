@@ -10,8 +10,10 @@ audited and reversible.
 Run:  python self-improvement/tests/test_bounds.py
 """
 
+import glob
 import hashlib
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -39,6 +41,11 @@ AR_OUTCOMES_RAW_130 = [{"forecast_collectible": 1000, "actual_collected": 1300}]
 def _file_hash(path):
     with open(path, "rb") as f:
         return hashlib.sha256(f.read()).hexdigest()
+
+
+def _read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
 
 
 def _inject(param, proposed, by="proposer", outcomes=None):
@@ -154,6 +161,79 @@ class BoundsTest(unittest.TestCase):
         registry.bump_cycle()  # advance one calibration cycle
         ok = proposer.propose("ar_collection_rate", AR_OUTCOMES_092)
         self.assertEqual(ok["status"], "pending")
+
+    # 10) The system cannot change its OWN bounds (min/max/max_step/cooldown).
+    #     The bounds live in REGISTRY (code); only a human editing that file can
+    #     change them. No operation of the system can.
+    def test_system_cannot_change_its_own_bounds(self):
+        bound_keys = ("min", "max", "max_step", "cooldown")
+        before = {p: {k: registry.REGISTRY[p][k] for k in bound_keys}
+                  for p in registry.param_names()}
+
+        # exercise every write path the system has
+        p = proposer.propose("ar_collection_rate", AR_OUTCOMES_092)
+        gate_mod.approve(p["id"], approver="Treasurer")
+        rollback_mod.rollback("ar_collection_rate", 1, by="Treasurer")
+
+        after = {p2: {k: registry.REGISTRY[p2][k] for k in bound_keys}
+                 for p2 in registry.param_names()}
+        self.assertEqual(before, after)  # bounds untouched by any operation
+
+        # the champion store (the only value-store the system writes) carries NO bounds
+        for c in registry.load_store()["champions"].values():
+            for k in bound_keys:
+                self.assertNotIn(k, c)
+
+        # even tampering the store to CLAIM wider bounds cannot widen them: the
+        # gate reads bounds from REGISTRY (code), so an out-of-(code)-bounds value
+        # is still rejected.
+        store = registry.load_store()
+        store["champions"]["ar_collection_rate"] = {
+            "value": 0.90, "version": 1, "min": 0.0, "max": 5.0, "max_step": 5.0}
+        registry.save_store(store)
+        self.assertEqual(registry.REGISTRY["ar_collection_rate"]["max"], 0.98)
+        pid = _inject("ar_collection_rate", 1.50)
+        res = gate_mod.approve(pid, approver="Treasurer")
+        self.assertFalse(res["ok"])
+        self.assertTrue(any("out of bounds" in r for r in res["reasons"]))
+
+        # static proof: no package code path mutates REGISTRY or a bound key
+        mutate = re.compile(
+            r"REGISTRY\s*\[[^\]]*\]\s*=|REGISTRY\.(update|pop|clear|setdefault)|"
+            r"\[\s*['\"](min|max|max_step|cooldown)['\"]\s*\]\s*=")
+        for f in glob.glob(os.path.join(PKG, "*.py")):
+            self.assertIsNone(mutate.search(_read(f)),
+                              f"unexpected bounds mutation in {os.path.basename(f)}")
+
+    # 11) The system cannot flip the auto-adopt flag. Only a human editing config
+    #     (the module attribute) can; nothing in the loop reassigns it.
+    def test_system_cannot_flip_auto_adopt(self):
+        self.assertFalse(gate_mod.AUTO_ADOPT_ENABLED)  # off by default
+
+        p = proposer.propose("ar_collection_rate", AR_OUTCOMES_092)
+        gate_mod.approve(p["id"], approver="Treasurer")
+        self.assertFalse(gate_mod.AUTO_ADOPT_ENABLED)  # a full cycle never flips it
+        pend = _inject("approval_threshold_usd", 26000.0)
+        self.assertFalse(gate_mod.maybe_auto_adopt(pend)["ok"])  # refused while off
+
+        # static proof: AUTO_ADOPT_ENABLED is ASSIGNED in exactly one place (the
+        # module default). No operation reassigns it.
+        assigns = 0
+        for f in glob.glob(os.path.join(PKG, "*.py")):
+            assigns += len(re.findall(r"AUTO_ADOPT_ENABLED\s*=(?!=)", _read(f)))
+        self.assertEqual(assigns, 1)
+
+        # only a human editing config (the attribute) changes the gate behavior;
+        # even then bounds still apply.
+        gate_mod.AUTO_ADOPT_ENABLED = True
+        try:
+            pid = _inject("ar_collection_rate", 1.20)  # out of bounds
+            res = gate_mod.maybe_auto_adopt(pid)
+            self.assertFalse(res["ok"])
+            self.assertNotIn("auto-adopt disabled (propose-only by default)", res["reasons"])
+            self.assertTrue(any("out of bounds" in r for r in res["reasons"]))
+        finally:
+            gate_mod.AUTO_ADOPT_ENABLED = False
 
 
 if __name__ == "__main__":

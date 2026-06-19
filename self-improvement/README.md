@@ -110,7 +110,13 @@ real state. They prove:
 7. every proposal and decision appears in the audit trail;
 8. tamper test: changing the eval ground-truth or a frozen parameter through this
    system fails, and `evals/eval_set.py` is left byte-for-byte unchanged;
-9. cooldown is respected.
+9. cooldown is respected;
+10. the system cannot change its OWN bounds (min/max/max_step/cooldown): they live
+    in `REGISTRY` (code), the champion store holds no bounds, a tampered store
+    cannot widen them, and no package code path mutates them;
+11. the system cannot flip the auto-adopt flag: it stays off through every
+    operation and is assigned in exactly one place (the module default), so only
+    a human editing config can enable it.
 
 ## Run it
 
