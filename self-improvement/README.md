@@ -8,6 +8,21 @@ do the work, and the tests prove the bounds.
 This is deliberately narrow. It is parameter calibration under hard limits, not
 an agent that rewrites itself.
 
+## The bound is in code, not in the system's reach
+
+The bounds (`min`, `max`, `max_step`, `cooldown`) and the auto-adopt flag live in
+**code** (the `REGISTRY` in `registry.py` and `gate.AUTO_ADOPT_ENABLED`), not in
+the mutable champion store. The loop can only propose a new **value** for a
+registered parameter, within those bounds. It cannot widen a bound, change a step
+or cooldown, or enable auto-adopt.
+
+The gate reads the bounds from the code registry, never from the store, so even a
+tampered store cannot widen them. Auto-adopt is off by default; only a human
+editing config (the code) can enable it.
+
+Proven by tests: `test_system_cannot_change_its_own_bounds` and
+`test_system_cannot_flip_auto_adopt` in `self-improvement/tests/test_bounds.py`.
+
 ## The invariant (what can and cannot self-modify)
 
 CAN change, only within the registry's limits:
