@@ -38,6 +38,7 @@ import finance_core as fc
 from shared_state import CFOContext
 import review
 import stages
+import cfo_o2c_bridge   # runs the Order-to-Cash control tower as a sub-orchestration
 
 load_dotenv(os.path.join(ROOT, ".env"))
 client = Anthropic()
@@ -48,7 +49,7 @@ PERIOD = "2026-05"
 # ya consolidan sus sub-agentes adentro (AR/AP/Tax y Close/Reporting). Audit es
 # independiente (tercera linea) y entra como par de los demas.
 AGENTS = ["Controller", "Treasury", "Administration", "Accounting & Reporting",
-          "FP&A", "Strategic Finance", "Internal Controls", "Audit"]
+          "FP&A", "Strategic Finance", "Internal Controls", "Audit", "Order-to-Cash"]
 
 
 def agent(system, prompt, max_tokens=700):
@@ -253,10 +254,21 @@ def run(period=PERIOD):
         return ctx
     ctx.audit("cross_check", "ok", "agents consistent on the shared numbers")
 
+    # Sub-orchestration: the Order-to-Cash control tower runs UNDER the CFO. It is
+    # deterministic (no LLM), writes its result into the same shared state, and its
+    # escalations are consolidated with the close. Wrapped so it can never break
+    # the close.
+    try:
+        o2c = cfo_o2c_bridge.run_o2c_suborchestration(ctx, period)
+        print(f"\n  [Order-to-Cash] {o2c['status']} | {o2c['hard_failures']} hard fail | "
+              f"audit {o2c['audit_opinion'].upper()}")
+    except Exception as e:                              # pragma: no cover
+        ctx.audit("Order-to-Cash", "ERROR", f"O2C sub-orchestration failed: {e}")
+
     # Every stage passed its control + first-line sign-off (recorded by stages).
     ctx.put("CFO", {"first_line": review.first_line_status(ctx)})
 
-    # Consolidate escalations from all agents.
+    # Consolidate escalations from all agents (now incl. Order-to-Cash).
     esc = gather_escalations(ctx)
     for sev, msg in esc:
         ctx.audit("escalation", sev, msg)
@@ -271,6 +283,11 @@ def run(period=PERIOD):
     ctx.audit("CFO", "approved", "CFO signed off the consolidated board pack")
 
     board = compose_board_pack(ctx)
+    # Append the deterministic Order-to-Cash section so its numbers come from
+    # o2c_core, not from the LLM narration.
+    o2c_section = ctx.get("Order-to-Cash", "section", "")
+    if o2c_section:
+        board = board + "\n\n" + o2c_section
     actions = compose_actions(ctx)
     ctx.put("CFO", {"board_pack": board, "actions": actions, "status": "approved"})
     ctx.audit("CFO", "ok", "consolidated board pack and actions fixed")

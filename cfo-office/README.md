@@ -109,6 +109,17 @@ Each agent also runs standalone (`python tax_agent.py`, etc.) for solo testing.
 - **Numbers by code, prose by model.** No LLM call is asked to compute or
   recompute a figure; the model receives the numbers and explains them.
 
+## Order-to-Cash sub-orchestration (`o2c/`)
+
+The CFO orchestrator also runs the **Order-to-Cash control tower**
+([`o2c/`](o2c/README.md)) as a sub-orchestration: `cfo_orchestrator.py` calls
+[`cfo_o2c_bridge.py`](cfo_o2c_bridge.py) during the close, the O2C tower runs its
+10 maker agents and 25 controls deterministically, and its status, metrics, and
+escalations land in the same `CFOContext`. So a single CFO run covers the
+month-end close and Order-to-Cash (Billing, Collections, Revenue Recognition, Cash
+Application, RevOps) as agents and sub-agents, with O2C in the consolidated board
+pack. The bridge is deterministic and needs no API key.
+
 ## Relationship to `orchestration/`
 
 `orchestration/` holds the earlier fixed-sequence operating model (close → cash →

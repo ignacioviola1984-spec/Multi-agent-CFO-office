@@ -130,6 +130,14 @@ and a continuous cadence. It runs as its own sub-orchestrator
 ([`cfo-office/o2c/`](cfo-office/o2c/README.md)) using the same governance pattern:
 deterministic numbers, maker/checker sign-off, an audit trail, and a hard gate.
 
+At runtime it sits UNDER the CFO orchestrator: `cfo_orchestrator.py` invokes the
+O2C control tower through `cfo-office/cfo_o2c_bridge.py` during the close, so a
+single CFO run executes the month-end close AND the Order-to-Cash tower as
+agents and sub-agents. The O2C status, metrics, and escalations land in the same
+shared `CFOContext`, so Order-to-Cash appears in the consolidated escalations and
+the board pack, and a BLOCKED O2C surfaces to the CFO as a material item. The
+bridge is deterministic and needs no API key.
+
 It connects the full chain — CRM, customer master, contracts, sales orders,
 billing schedules, invoices, revenue recognition, AR, collections, disputes, cash
 application, bank receipts, and credit limits — across multiple entities, regions,
