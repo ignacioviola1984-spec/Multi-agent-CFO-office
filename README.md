@@ -74,6 +74,30 @@ final CFO sign-off**.
 > assessment — what's already production-grade, where the real gap is, and how it
 > deploys today as a governed co-pilot: [`PRODUCTION-READINESS.md`](PRODUCTION-READINESS.md).
 
+### Revenue Operations / Order-to-Cash Control Tower (`cfo-office/o2c/`)
+A sub-orchestrator under the CFO Office that owns Revenue Operations and
+Order-to-Cash end to end: **CRM → customer master → contracts → orders → billing →
+invoices → revenue recognition → AR → collections → cash application → bank → GL /
+reporting**, across multiple entities, regions, and currencies (USD, EUR, GBP, BRL,
+MXN, ARS). It runs on **15 coherent datasets** with seeded exceptions, **10
+deterministic maker agents** each signed off by a domain-expert checker, and **25
+controls (15 hard + 10 soft)**. Finance numbers are computed in code; agents
+diagnose, prioritize, explain, route, and draft, but never invent a figure. **Hard
+controls block reporting** when CRM, billing, revenue recognition, cash
+application, AR, or deferred revenue do not tie out, and the orchestrator exits
+non-zero in CI. It needs no API key and runs from one command. The datasets are
+synthetic and illustrative (deterministic, with a known seeded-exception ground
+truth), so the controls and tests have a verifiable answer key. Details:
+[`cfo-office/o2c/README.md`](cfo-office/o2c/README.md).
+
+```
+python run_o2c_control_tower.py
+```
+
+**Stack:** Python, pandas, deterministic O2C engine, agentic workflow
+orchestration, billing/revenue/cash/credit controls, collections risk scoring,
+maker-checker HITL, audit trail, metrics framework, executive reporting.
+
 ### Finance Document Intelligence / RAG (`document-intelligence/`)
 Semantic search, retrieval-augmented generation, and structured extraction
 over finance documents (vendor contracts, expense policy): embeds and

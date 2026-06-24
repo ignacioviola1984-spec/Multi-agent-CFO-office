@@ -123,6 +123,28 @@ never hangs, **but the record is explicitly marked `auto`** and is never passed
 off as a real human sign-off. The block-on-reject behaviour is the same in both
 modes — only the keystroke is simulated, not the control.
 
+## Order-to-Cash sub-orchestrator (Revenue Operations)
+
+The close is one operating loop; Order-to-Cash is another, with different owners
+and a continuous cadence. It runs as its own sub-orchestrator
+([`cfo-office/o2c/`](cfo-office/o2c/README.md)) using the same governance pattern:
+deterministic numbers, maker/checker sign-off, an audit trail, and a hard gate.
+
+It connects the full chain — CRM, customer master, contracts, sales orders,
+billing schedules, invoices, revenue recognition, AR, collections, disputes, cash
+application, bank receipts, and credit limits — across multiple entities, regions,
+and currencies. Ten deterministic maker agents (Order Intake, Customer Master,
+Contract, Billing, Revenue Recognition, Collections, Cash Application,
+Disputes/Credit, RevOps Analytics, and an independent O2C Audit) each report to a
+domain-expert checker. Twenty-five controls (15 hard, 10 soft) tie CRM to billing
+to revenue to cash to AR to deferred revenue; a hard failure blocks the release of
+O2C reporting, the same way a failed close control blocks the board pack.
+
+The O2C datasets are synthetic and illustrative, generated deterministically with a
+known seeded-exception ground truth, so the controls and the test suite have a
+verifiable answer key. As with the close, the agents narrate and prioritize but the
+numbers are computed in code.
+
 ## What this is and isn't
 
 - **Is:** a realistic, production-shaped operating model — staged, with

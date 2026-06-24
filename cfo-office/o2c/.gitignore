@@ -1,0 +1,6 @@
+# Generated run artifacts (reproducible from the committed data via the orchestrator)
+outputs/*
+!outputs/.gitkeep
+
+__pycache__/
+*.pyc
