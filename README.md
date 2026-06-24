@@ -124,6 +124,28 @@ works as a regression test. Details: [`evals/README.md`](evals/README.md).
 **Stack:** Python, evaluation harness, regression testing, grounding
 guardrails. This is the reliability layer over the other projects.
 
+### Bounded Self-Improvement (`self-improvement/`)
+A layer that lets the AI **propose better parameter values and nothing else**:
+parameter calibration under hard limits, not an agent that rewrites itself. A
+challenger proposes a candidate **deterministically** (statistical calibration
+over an outcomes window; the LLM only writes the human-readable rationale, never
+picks the number), and a gate promotes it only if every condition holds: within
+the registry's `[min, max]`, step cap, and cooldown; the deterministic eval suite
+passes with **no regression**; a backtest shows the metric does not get worse; and
+the parameter's registered human **owner** approves (maker-checker). The bounds
+and the auto-adopt flag live in **code** (the `REGISTRY` and `AUTO_ADOPT_ENABLED`),
+not in the mutable champion store, so the loop cannot widen a bound, change a step,
+or enable auto-adopt; the default posture is propose-only. Only four scalar values
+are ever calibrated and **no formula in `finance_core` can be touched**. Every
+prior champion is kept (one-step rollback) and every decision lands in an
+append-only audit trail. The bound tests prove the limits, including that the
+system cannot change its own bounds or flip the auto-adopt flag. Details:
+[`self-improvement/README.md`](self-improvement/README.md).
+
+**Stack:** Python, deterministic calibration, champion/challenger over a bounded
+registry, eval-gated promotion, maker-checker approval, append-only audit trail,
+rollback.
+
 ### Web App / Live Demo (`webapp/`)
 A Streamlit app that puts a usable interface over three of the projects so a
 non-technical person can operate them: the FX agent, the operating model
