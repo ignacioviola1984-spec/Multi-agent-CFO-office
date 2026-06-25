@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deterministic-suites:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests anthropic python-dotenv mcp
+
+      - name: dLocal regenerate
+        run: python test-dlocal/run_dlocal_test.py
+
+      - name: dLocal audit (17/0)
+        run: python test-dlocal/audit_dlocal_test.py
+
+      - name: Self-improvement bound tests
+        run: python self-improvement/tests/test_bounds.py
