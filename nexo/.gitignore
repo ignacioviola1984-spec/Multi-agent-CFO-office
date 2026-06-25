@@ -1,0 +1,17 @@
+# Nexo runtime artifacts (generated; never committed). Paths are relative to nexo/.
+
+# Shared-state + audit trail written at run time
+nexo_state.json
+audit_log.jsonl
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Generated Excel exports (the demo cartera under data/ IS committed; exports are not)
+outputs/*.xlsx
+
+# Real broker data - the synthetic demo cartera is committed, real client PII NEVER is.
+data/cartera_real*.xlsx
+data/*_real.xlsx
+data/real/

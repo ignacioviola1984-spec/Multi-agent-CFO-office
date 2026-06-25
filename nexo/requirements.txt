@@ -1,0 +1,18 @@
+# Nexo - Python dependencies (self-contained).
+#
+#   pip install -r nexo/requirements.txt
+#
+# Nexo reuses the repo-root .env for ANTHROPIC_API_KEY (same key as the finance
+# projects). The deterministic core + tests + evals need only pandas/openpyxl and
+# run with NO API key; anthropic/streamlit are for the prose layer and the app.
+
+# --- deterministic core (data layer, detectors, metrics) - what tests/evals run ---
+pandas>=2.0
+openpyxl>=3.1        # read the cartera Excel and write the approved-actions Excel
+
+# --- prose layer (LLM drafts the Spanish messages + dashboard narrative) ---
+anthropic>=0.40      # Claude client; optional at runtime (offline template fallback)
+python-dotenv>=1.0   # loads ANTHROPIC_API_KEY from the repo-root .env
+
+# --- approval-inbox web app ---
+streamlit>=1.30      # nexo/app.py (HITL inbox + dashboard + export button)
