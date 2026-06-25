@@ -4,6 +4,15 @@ __pycache__/
 audit_log.jsonl
 cfo_state.json
 
+# QuickBooks source (sources/): the OAuth token store and runtime artifacts.
+# Secrets and the rotating refresh token live in .env / the token store and are
+# NEVER committed. The committed test fixture under sources/fixtures/ is fine.
+tokens.json
+**/tokens.json
+qbo_tokens.json
+sources/canonical/_active/
+sources/snapshots/data/
+
 # Real LendingClub data (large, ~1.6GB+ each) — never commit; the seeded samples
 # and public_filings.csv stay versioned, the real Kaggle files do not.
 lendingclub-data/accepted_2007_to_2018Q4.csv

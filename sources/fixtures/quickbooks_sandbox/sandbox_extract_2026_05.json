@@ -1,0 +1,109 @@
+{
+  "profit_and_loss": {
+    "Header": {"ReportName": "ProfitAndLoss", "StartPeriod": "2026-05-01", "EndPeriod": "2026-05-31", "Currency": "USD", "ReportBasis": "Accrual"},
+    "Columns": {"Column": [{"ColTitle": "", "ColType": "Account"}, {"ColTitle": "Total", "ColType": "Money"}]},
+    "Rows": {"Row": [
+      {"group": "Income", "type": "Section",
+       "Header": {"ColData": [{"value": "Income"}, {"value": ""}]},
+       "Rows": {"Row": [
+         {"type": "Data", "ColData": [{"value": "Sales", "id": "60"}, {"value": "50000.00"}]}
+       ]},
+       "Summary": {"ColData": [{"value": "Total Income"}, {"value": "50000.00"}]}},
+      {"group": "COGS", "type": "Section",
+       "Header": {"ColData": [{"value": "Cost of Goods Sold"}, {"value": ""}]},
+       "Rows": {"Row": [
+         {"type": "Data", "ColData": [{"value": "Cost of Goods Sold", "id": "80"}, {"value": "18000.00"}]}
+       ]},
+       "Summary": {"ColData": [{"value": "Total Cost of Goods Sold"}, {"value": "18000.00"}]}},
+      {"group": "GrossProfit", "type": "Section",
+       "Summary": {"ColData": [{"value": "Gross Profit"}, {"value": "32000.00"}]}},
+      {"group": "Expenses", "type": "Section",
+       "Header": {"ColData": [{"value": "Expenses"}, {"value": ""}]},
+       "Rows": {"Row": [
+         {"type": "Data", "ColData": [{"value": "Advertising", "id": "90"}, {"value": "5000.00"}]},
+         {"type": "Data", "ColData": [{"value": "Research & Development", "id": "91"}, {"value": "8000.00"}]},
+         {"type": "Data", "ColData": [{"value": "Rent", "id": "92"}, {"value": "12000.00"}]}
+       ]},
+       "Summary": {"ColData": [{"value": "Total Expenses"}, {"value": "25000.00"}]}},
+      {"group": "NetOperatingIncome", "type": "Section",
+       "Summary": {"ColData": [{"value": "Net Operating Income"}, {"value": "7000.00"}]}},
+      {"group": "NetIncome", "type": "Section",
+       "Summary": {"ColData": [{"value": "Net Income"}, {"value": "7000.00"}]}}
+    ]}
+  },
+  "balance_sheet": {
+    "Header": {"ReportName": "BalanceSheet", "StartPeriod": "2026-05-31", "EndPeriod": "2026-05-31", "Currency": "USD", "ReportBasis": "Accrual"},
+    "Columns": {"Column": [{"ColTitle": "", "ColType": "Account"}, {"ColTitle": "Total", "ColType": "Money"}]},
+    "Rows": {"Row": [
+      {"group": "Assets", "type": "Section",
+       "Header": {"ColData": [{"value": "ASSETS"}, {"value": ""}]},
+       "Rows": {"Row": [
+         {"type": "Data", "ColData": [{"value": "Checking", "id": "35"}, {"value": "80000.00"}]},
+         {"type": "Data", "ColData": [{"value": "Accounts Receivable (A/R)", "id": "84"}, {"value": "30000.00"}]},
+         {"type": "Data", "ColData": [{"value": "Truck", "id": "37"}, {"value": "20000.00"}]}
+       ]},
+       "Summary": {"ColData": [{"value": "Total Assets"}, {"value": "130000.00"}]}},
+      {"group": "Liabilities", "type": "Section",
+       "Header": {"ColData": [{"value": "LIABILITIES"}, {"value": ""}]},
+       "Rows": {"Row": [
+         {"type": "Data", "ColData": [{"value": "Accounts Payable (A/P)", "id": "33"}, {"value": "15000.00"}]},
+         {"type": "Data", "ColData": [{"value": "Unearned Revenue", "id": "34"}, {"value": "10000.00"}]}
+       ]},
+       "Summary": {"ColData": [{"value": "Total Liabilities"}, {"value": "25000.00"}]}},
+      {"group": "Equity", "type": "Section",
+       "Header": {"ColData": [{"value": "EQUITY"}, {"value": ""}]},
+       "Rows": {"Row": [
+         {"type": "Data", "ColData": [{"value": "Common Stock", "id": "38"}, {"value": "50000.00"}]},
+         {"type": "Data", "ColData": [{"value": "Retained Earnings", "id": "39"}, {"value": "55000.00"}]}
+       ]},
+       "Summary": {"ColData": [{"value": "Total Equity"}, {"value": "105000.00"}]}}
+    ]}
+  },
+  "accounts": [
+    {"Id": "35", "Name": "Checking", "AccountType": "Bank", "CurrentBalance": 80000.00, "Active": true},
+    {"Id": "84", "Name": "Accounts Receivable (A/R)", "AccountType": "Accounts Receivable", "CurrentBalance": 30000.00, "Active": true},
+    {"Id": "37", "Name": "Truck", "AccountType": "Fixed Asset", "CurrentBalance": 20000.00, "Active": true},
+    {"Id": "33", "Name": "Accounts Payable (A/P)", "AccountType": "Accounts Payable", "CurrentBalance": 15000.00, "Active": true},
+    {"Id": "34", "Name": "Unearned Revenue", "AccountType": "Other Current Liability", "CurrentBalance": 10000.00, "Active": true},
+    {"Id": "38", "Name": "Common Stock", "AccountType": "Equity", "CurrentBalance": 50000.00, "Active": true},
+    {"Id": "39", "Name": "Retained Earnings", "AccountType": "Equity", "CurrentBalance": 55000.00, "Active": true},
+    {"Id": "60", "Name": "Sales", "AccountType": "Income", "Active": true},
+    {"Id": "80", "Name": "Cost of Goods Sold", "AccountType": "Cost of Goods Sold", "Active": true},
+    {"Id": "90", "Name": "Advertising", "AccountType": "Expense", "Active": true},
+    {"Id": "91", "Name": "Research & Development", "AccountType": "Expense", "Active": true},
+    {"Id": "92", "Name": "Rent", "AccountType": "Expense", "Active": true}
+  ],
+  "invoices": [
+    {"Id": "1", "DocNumber": "1001", "CustomerRef": {"value": "1", "name": "Amy's Bird Sanctuary"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 12000.00, "Balance": 12000.00, "TxnDate": "2026-05-05", "DueDate": "2026-06-04"},
+    {"Id": "2", "DocNumber": "1002", "CustomerRef": {"value": "2", "name": "Bill's Windsurf Shop"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 10000.00, "Balance": 10000.00, "TxnDate": "2026-05-10", "DueDate": "2026-06-09"},
+    {"Id": "3", "DocNumber": "1003", "CustomerRef": {"value": "3", "name": "Cool Cars"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 8000.00, "Balance": 8000.00, "TxnDate": "2026-05-15", "DueDate": "2026-05-30"},
+    {"Id": "4", "DocNumber": "1004", "CustomerRef": {"value": "1", "name": "Amy's Bird Sanctuary"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 5000.00, "Balance": 0.00, "TxnDate": "2026-05-02", "DueDate": "2026-06-01"}
+  ],
+  "bills": [
+    {"Id": "1", "VendorRef": {"value": "10", "name": "Tim Philip Masonry"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 9000.00, "Balance": 9000.00, "TxnDate": "2026-05-08", "DueDate": "2026-06-07"},
+    {"Id": "2", "VendorRef": {"value": "11", "name": "Norton Lumber and Building Materials"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 6000.00, "Balance": 6000.00, "TxnDate": "2026-05-12", "DueDate": "2026-05-28"},
+    {"Id": "3", "VendorRef": {"value": "10", "name": "Tim Philip Masonry"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 4000.00, "Balance": 0.00, "TxnDate": "2026-05-03", "DueDate": "2026-06-02"}
+  ],
+  "payments": [
+    {"Id": "1", "CustomerRef": {"value": "1", "name": "Amy's Bird Sanctuary"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 5000.00, "TxnDate": "2026-05-20"}
+  ],
+  "bill_payments": [
+    {"Id": "1", "VendorRef": {"value": "10", "name": "Tim Philip Masonry"}, "CurrencyRef": {"value": "USD"}, "TotalAmt": 4000.00, "TxnDate": "2026-05-18"}
+  ],
+  "customers": [
+    {"Id": "1", "DisplayName": "Amy's Bird Sanctuary", "CurrencyRef": {"value": "USD"}, "Balance": 12000.00},
+    {"Id": "2", "DisplayName": "Bill's Windsurf Shop", "CurrencyRef": {"value": "USD"}, "Balance": 10000.00},
+    {"Id": "3", "DisplayName": "Cool Cars", "CurrencyRef": {"value": "USD"}, "Balance": 8000.00}
+  ],
+  "vendors": [
+    {"Id": "10", "DisplayName": "Tim Philip Masonry", "CurrencyRef": {"value": "USD"}, "Balance": 9000.00},
+    {"Id": "11", "DisplayName": "Norton Lumber and Building Materials", "CurrencyRef": {"value": "USD"}, "Balance": 6000.00}
+  ],
+  "journal_entries": [
+    {"Id": "1", "TxnDate": "2026-05-25", "CurrencyRef": {"value": "USD"},
+     "Line": [
+       {"JournalEntryLineDetail": {"PostingType": "Debit", "AccountRef": {"value": "92", "name": "Rent"}}, "Amount": 500.00},
+       {"JournalEntryLineDetail": {"PostingType": "Credit", "AccountRef": {"value": "35", "name": "Checking"}}, "Amount": 500.00}
+     ]}
+  ]
+}

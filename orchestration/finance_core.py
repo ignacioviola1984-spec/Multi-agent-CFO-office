@@ -15,8 +15,13 @@ import os
 import json
 import datetime
 
-DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "finance-mcp", "data")
-LATEST = "2026-05"
+# The engine reads CANONICAL data. By default that is the synthetic Lumen CSVs;
+# a swappable source (see sources/) can point the engine at a different canonical
+# directory via FINANCE_DATA_DIR. The schema is identical either way - the engine
+# never learns where the canonical data came from (no vendor object names here).
+DATA = os.environ.get("FINANCE_DATA_DIR") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "finance-mcp", "data")
+LATEST = os.environ.get("FINANCE_LATEST_PERIOD", "2026-05")
 
 
 # --------------------------------------------------------------------------

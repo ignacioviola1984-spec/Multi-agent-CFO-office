@@ -239,6 +239,34 @@ Bitacora de avance, fase por fase.
   Pendiente FLAGGEADO: el snapshot del demo publico quedo desactualizado (muestra
   la caja vieja 7,09M) -> requiere refresh del demo (fase aparte).
 
+### Fase 7 — Fuente de datos real swappable: QuickBooks Online (sandbox)  [OK]
+- sources/: QuickBooks Online (sandbox) como fuente real y SWAPPABLE que alimenta
+  una capa canonica propia. El motor (finance_core) y la superficie MCP leen SOLO
+  canonico; nunca dependen de nombres de objetos de QuickBooks. Hoy QuickBooks,
+  manana NetSuite/SAP/Odoo/Zoho implementando la misma interfaz, sin tocar el motor.
+- OAuth2 (auth-code) contra sandbox: endpoints desde el discovery doc de Intuit (no
+  hardcodeados), access token con auto-refresh (~60 min), refresh token que ROTA
+  (~24h) -> se persiste siempre el ultimo con su nueva expiracion; token store fuera
+  del repo y gitignoreado; 401 -> refresh -> retry.
+- Adapter read-only ENFORCED en codigo (solo GET/query, ningun create/update/delete;
+  el scope permite escritura, la restriccion la hace el codigo), minorversion=75,
+  backoff exponencial ante 429.
+- Mapper deterministico QuickBooks -> canonico (12 codigos rollup); validaciones
+  determinIsticas (balance cuadra, trial balance balancea, AR ata al control, sin
+  postings futuros, moneda presente) que salen non-zero al fallar; snapshot inmutable
+  append-only (raw/ + canonical/ + manifest con sha256 de cada archivo).
+- Wiring: una sola linea source-agnostic en finance_core (FINANCE_DATA_DIR), default
+  identico -> el path sintetico y todos los tests/evals intactos (22/22 numbers,
+  12/12 self-improvement). Tests offline contra un fixture (sin API viva ni secret),
+  sumados al CI.
+- BOUNDARY honesto: sandbox != prod; la sample company es single-entity / single-
+  currency (US/USD), asi que valida la capa transaccional (AR/AP/billing) y el R2R
+  (P&L, balance, trial balance) contra datos reales, pero NO la consolidacion
+  multi-entidad / multi-moneda (eso lo ejercita solo el modelo sintetico). budget y
+  tax_obligations salen vacios para QuickBooks (sin objeto limpio), documentado. El
+  fixture commiteado es representativo (modelado sobre las shapes documentadas de
+  Intuit); record_fixture.py captura uno real con credenciales propias.
+
 ## Backlog del departamento (multi-agente, hacia el "full finance department")
 - Faltantes mapeados (ver chat de gap analysis): Strategic Finance [HECHO],
   Administration/AR/AP/Tax [HECHO], Internal Controls [HECHO], profundizar
