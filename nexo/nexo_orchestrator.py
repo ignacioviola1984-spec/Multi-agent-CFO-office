@@ -55,7 +55,7 @@ def _auto() -> bool:
 
 # --------------------------------------------------------------------------
 # Deterministic cross-checks: the inbox must reconcile with the detectors.
-# Same purpose as the CFO orchestrator's cross_checks — if an agent drifts from
+# Same purpose as the CFO orchestrator's cross_checks - if an agent drifts from
 # the single source of numbers, it surfaces here instead of in the output.
 # --------------------------------------------------------------------------
 

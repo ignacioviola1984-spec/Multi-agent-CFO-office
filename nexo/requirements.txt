@@ -6,7 +6,7 @@
 # projects). The deterministic core + tests + evals need only pandas/openpyxl and
 # run with NO API key; anthropic/streamlit are for the prose layer and the app.
 
-# --- deterministic core (data layer, detectors, metrics) — what tests/evals run ---
+# --- deterministic core (data layer, detectors, metrics) - what tests/evals run ---
 pandas>=2.0
 openpyxl>=3.1        # read the cartera Excel and write the approved-actions Excel
 

@@ -1,4 +1,4 @@
-# Nexo — modelo operativo (arquitectura)
+# Nexo - modelo operativo (arquitectura)
 
 Nexo re-implementa, para el dominio del productor de seguros, el mismo **modelo
 operativo confiable** del CFO office: el modelo trabaja, pero hay **controles de
@@ -75,7 +75,7 @@ finanzas; replica los **patrones**.
 
 ## Trazabilidad
 
-Cada paso —cada propuesta de agente, cada flag, cada decisión, cada cross-check—
+Cada paso -cada propuesta de agente, cada flag, cada decisión, cada cross-check-
 se agrega al **audit trail** en memoria y al `nexo/audit_log.jsonl` (append-only),
 y el estado completo (agentes, flags, audit, inbox, métricas) se persiste a
 `nexo/nexo_state.json`. Se sabe quién escribió qué y cuándo: el sistema es
@@ -87,7 +87,7 @@ intervención, reproduciendo los mismos números).
 - **Determinístico (código):** detección, conteos, fechas, montos, buckets,
   primas, comisiones, score de confianza, severidad, selección de
   cliente/póliza, métricas, cross-checks, export.
-- **LLM (prosa):** el texto de cada mensaje y la narrativa del panel — y siempre
+- **LLM (prosa):** el texto de cada mensaje y la narrativa del panel - y siempre
   pasando por el guard de grounding.
 
 Si el LLM no está disponible o se desactiva, el sistema funciona igual con

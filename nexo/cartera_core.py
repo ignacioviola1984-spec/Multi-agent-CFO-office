@@ -44,7 +44,7 @@ def data_completeness(values) -> float:
 
 def confidence(completeness: float, rule_strength: float) -> float:
     """Deterministic confidence in [0, 1]. Higher with more complete data and a
-    stronger rule. Pure function of its inputs — no model, no randomness."""
+    stronger rule. Pure function of its inputs - no model, no randomness."""
     c = max(0.0, min(1.0, completeness))
     r = max(0.0, min(1.0, rule_strength))
     return round(W_DATA * c + W_RULE * r, 4)

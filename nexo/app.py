@@ -44,7 +44,7 @@ from shared_state import CarteraContext
 from outputs import excel_writer
 
 st.set_page_config(page_title="Nexo · co-piloto del productor", layout="wide")
-st.title("Nexo — co-piloto del productor de seguros")
+st.title("Nexo - co-piloto del productor de seguros")
 st.caption("Cartera sintética de demo. Los números los calcula el código; los agentes "
            "redactan. Vos aprobás cada acción antes de exportar nada (human-in-the-loop).")
 

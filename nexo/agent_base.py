@@ -33,7 +33,7 @@ def format_ars(x) -> str:
 
 def contact_completeness(cand) -> float:
     """How complete the client's reachability/identity data is (0..1). Feeds the
-    confidence score — we are more confident proposing outreach we can deliver."""
+    confidence score - we are more confident proposing outreach we can deliver."""
     return cc.data_completeness([cand.get("email"), cand.get("telefono"),
                                  cand.get("nombre")])
 

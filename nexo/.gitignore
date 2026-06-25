@@ -11,7 +11,7 @@ __pycache__/
 # Generated Excel exports (the demo cartera under data/ IS committed; exports are not)
 outputs/*.xlsx
 
-# Real broker data — the synthetic demo cartera is committed, real client PII NEVER is.
+# Real broker data - the synthetic demo cartera is committed, real client PII NEVER is.
 data/cartera_real*.xlsx
 data/*_real.xlsx
 data/real/

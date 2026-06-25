@@ -12,10 +12,10 @@ Two responsibilities:
      present in the allowed payload. The agent declares exactly which figures the
      message may cite; if the model invents a figure (a different amount, an
      extra count, a year), the guard catches it and draft() falls back to the
-     deterministic template — ungrounded prose is never emitted.
+     deterministic template - ungrounded prose is never emitted.
 
 Numbers are deterministic; prose is the model's. The model never computes or
-invents a number — this module is where that invariant is enforced.
+invents a number - this module is where that invariant is enforced.
 """
 
 import os
@@ -41,7 +41,7 @@ STYLE = (
     "tono profesional y cálido, breve (2 a 4 frases). Sos el productor de seguros "
     "escribiéndole directamente al cliente. No inventes datos, números, fechas, "
     "montos ni nombres de pólizas: usá SOLO lo que se te da. No incluyas el correo, "
-    "el teléfono ni el número de póliza en el texto. No uses guiones largos (—)."
+    "el teléfono ni el número de póliza en el texto. No uses guiones largos (rayas)."
 )
 
 

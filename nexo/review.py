@@ -2,13 +2,13 @@
 review.py - The single-broker approval inbox (human-in-the-loop).
 
 Simplified from cfo-office/review.py (maker-checker per function) to a SINGLE
-checker: the broker (productor). The agents are the makers — each proposes an
+checker: the broker (productor). The agents are the makers - each proposes an
 action that starts as `pendiente`. The broker is the only checker; every action
 is exported ONLY after they approve (or edit-then-approve). Rejections are logged.
 Nothing is ever auto-sent.
 
 Every decision records who / what / when (decided_by, decision_note, ts_decidida)
-into the shared state's audit trail — the evidence trail the model is built on.
+into the shared state's audit trail - the evidence trail the model is built on.
 
 Status machine:  pendiente -> aprobada | editada | rechazada
 (`editada` means the broker changed the message text and approved it.)
@@ -148,12 +148,12 @@ def reject(ctx, action_id, note="", by=DECIDED_BY):
 
 
 def approved_for_export(ctx):
-    """Actions the broker approved or edited — the only ones exported."""
+    """Actions the broker approved or edited - the only ones exported."""
     return [d for d in ctx.state["inbox"] if d["estado"] in EXPORTABLE]
 
 
 def summary(ctx):
-    """Counts by status and by type — for the dashboard and reconciliation."""
+    """Counts by status and by type - for the dashboard and reconciliation."""
     inbox = ctx.state["inbox"]
     by_estado, by_tipo = {}, {}
     for d in inbox:

@@ -1,4 +1,4 @@
-# Nexo — co-piloto del productor de seguros (AR)
+# Nexo - co-piloto del productor de seguros (AR)
 
 Nexo es un co-piloto de IA para **un único productor de seguros** en Argentina.
 Ingiere la **cartera** del productor desde un Excel y corre agentes
@@ -108,7 +108,7 @@ motivo. Cada decisión registra **quién / qué / cuándo** en el audit trail
 - **App Streamlit**: aprobación/edición/rechazo **por acción** (el flujo real).
 - **CLI orquestador**: gate de **lote** (aprobar todo / abortar). Con
   `NEXO_AUTO_APPROVE=1` auto-aprueba para CI/replay, registrado como `by="auto"`
-  — **nunca** se hace pasar por una firma humana.
+  - **nunca** se hace pasar por una firma humana.
 
 ---
 
@@ -133,11 +133,11 @@ Federación Patronal, San Cristóbal, Mercantil Andina, Allianz, Provincia).
 | Variable | Default | Efecto |
 |----------|---------|--------|
 | `NEXO_USE_LLM` | `0` | `1` = Claude redacta; si no, plantillas determinísticas |
-| `NEXO_AUTO_APPROVE` | — | `1` = el orquestador auto-aprueba (CI/replay) |
+| `NEXO_AUTO_APPROVE` | - | `1` = el orquestador auto-aprueba (CI/replay) |
 | `NEXO_RENEW_DAYS` | `30` | ventana de renovaciones |
 | `NEXO_INACTIVE_MONTHS` | `6` | umbral de inactividad |
 | `NEXO_CROSSSELL_LIMIT` | `20` | tope (logueado) de propuestas de cross-sell en la bandeja |
-| `ANTHROPIC_API_KEY` | — | se lee del `.env` de la raíz del repo (sólo con `NEXO_USE_LLM=1`) |
+| `ANTHROPIC_API_KEY` | - | se lee del `.env` de la raíz del repo (sólo con `NEXO_USE_LLM=1`) |
 
 ---
 

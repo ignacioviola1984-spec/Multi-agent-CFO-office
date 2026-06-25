@@ -8,7 +8,7 @@ and the whole state persists to nexo_state.json. This is what makes the run
 auditable and replayable: who wrote what, and when.
 
 The proposed-action inbox lives in this state (state["inbox"]) but is managed by
-review.py — same split as the finance model (shared_state vs review).
+review.py - same split as the finance model (shared_state vs review).
 """
 
 import datetime

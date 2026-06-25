@@ -4,7 +4,7 @@ analisis_cartera_agent.py - Agent 5: portfolio analytics + dashboard insight.
 Computes deterministic portfolio metrics (total policies, monthly premium,
 mix by insurer and by ramo, % en mora, upcoming renewals, active/inactive
 clients, retention) and asks the LLM to write the dashboard INSIGHT narrative
-from those exact figures. No per-client action — this feeds the dashboard.
+from those exact figures. No per-client action - this feeds the dashboard.
 
 The narrative is number-heavy, so the grounding guard is given the formatted
 facts + the template as the allowed set: the model may restate the figures it was

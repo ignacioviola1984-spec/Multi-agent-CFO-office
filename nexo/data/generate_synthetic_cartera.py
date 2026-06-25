@@ -3,7 +3,7 @@ generate_synthetic_cartera.py - Build a realistic *synthetic* cartera.
 
 Produces nexo/data/cartera_demo.xlsx: ~150 clients / ~220 policies of an
 Argentine insurance broker, with a deliberate spread so every agent has work to
-do — upcoming renewals, mora across all four buckets, inactive (lapsed) clients
+do - upcoming renewals, mora across all four buckets, inactive (lapsed) clients
 to reactivate, and cross-sell gaps (Auto without Hogar, Comercio without ART...).
 
 100% synthetic: names are drawn from generic pools, emails use example.com, and
@@ -135,7 +135,7 @@ def build(seed=42):
     g = _Gen(seed)
     ramos_main = ["Auto", "Hogar", "Vida", "Comercio", "Combinado", "Motovehiculo"]
 
-    # 1) Renewals due soon (active, al dia) — renovaciones agent. Mixed horizons,
+    # 1) Renewals due soon (active, al dia) - renovaciones agent. Mixed horizons,
     #    most within 30 days, some 31-60 to exercise the default-vs-wider window.
     for _ in range(22):
         c = g.new_client()
@@ -144,7 +144,7 @@ def build(seed=42):
         c = g.new_client()
         g.active_aldia(c, g.rng.choice(ramos_main), g.rng.randint(31, 58))
 
-    # 2) Mora across all four buckets (active policies in arrears) — cobranza agent.
+    # 2) Mora across all four buckets (active policies in arrears) - cobranza agent.
     for bucket, n in MORA_PLAN.items():
         dpd = MORA_DPD[bucket]
         for _ in range(n):
@@ -156,7 +156,7 @@ def build(seed=42):
                      ultimo_pago_days=schema.GRACE_DAYS + dpd)
 
     # 3) Inactive / lapsed clients (all policies vencida or cancelada, > 6 months
-    #    ago) — reactivacion agent. >180 days lapsed.
+    #    ago) - reactivacion agent. >180 days lapsed.
     for _ in range(20):
         c = g.new_client()
         n_pol = g.rng.choice([1, 1, 2])
@@ -167,7 +167,7 @@ def build(seed=42):
                      venc_days=-g.rng.randint(200, 720),
                      ultimo_pago_days=g.rng.randint(200, 720))
 
-    # 4) Cross-sell gaps — cross_sell agent. Each holds an active "has" ramo and
+    # 4) Cross-sell gaps - cross_sell agent. Each holds an active "has" ramo and
     #    deliberately lacks the complementary one. Renewals far off so they don't
     #    double as renovaciones.
     crosssell_specs = (
@@ -180,7 +180,7 @@ def build(seed=42):
         c = g.new_client()
         g.active_aldia(c, has, venc + g.rng.randint(-20, 20))
 
-    # 5) Healthy multi-policy clients — already cross-covered, far-off renewals,
+    # 5) Healthy multi-policy clients - already cross-covered, far-off renewals,
     #    al dia. These produce NO action (so the inbox is not 100% noise) and add
     #    realistic second policies per client.
     for _ in range(30):
