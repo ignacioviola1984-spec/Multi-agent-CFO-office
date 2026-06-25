@@ -279,12 +279,12 @@ def render_overview():
     st.divider()
     st.markdown("##### Why this matters")
     c = st.columns(3)
-    c[0].metric("Numbers regression eval", f"{EVALS['numbers']['passed']}/{EVALS['numbers']['total']}",
-                "deterministic, offline", delta_color="off")
+    c[0].metric("Numbers accuracy", f"{EVALS['numbers']['passed']}/{EVALS['numbers']['total']}",
+                "the month-end close", delta_color="off")
     c[1].metric("vs real audited SEC data (dLocal)", f"{EVALS['dlocal']['passed']}/{EVALS['dlocal']['total']}",
                 "NASDAQ: DLO FY2024-25", delta_color="off")
     c[2].metric("Control-tower tests", f"{EVALS['o2c_suite']['passed']}/{EVALS['o2c_suite']['total']}",
-                f"incl {EVALS['o2c_blind']['caught']}/{EVALS['o2c_blind']['planted']} planted issues", delta_color="off")
+                f"{EVALS['o2c_blind']['caught']}/{EVALS['o2c_blind']['planted']} planted errors found", delta_color="off")
 
 
 # ==========================================================================
@@ -777,44 +777,47 @@ def render_close():
 def render_evals():
     section_title("4", "Evals - does it actually hold?",
                   "Four independent, fully offline scoreboards. This is the trust layer: the AI's "
-                  "numbers are right, and the system refuses to drift.")
+                  "numbers are right, and they don't quietly change over time.")
 
     c = st.columns(4)
-    c[0].metric("Numbers regression", f"{EVALS['numbers']['passed']}/{EVALS['numbers']['total']}",
-                "deterministic close", delta_color="off")
-    c[1].metric("Self-improve safety", f"{EVALS['safety']['passed']}/{EVALS['safety']['total']}",
-                "bound proofs", delta_color="off")
+    c[0].metric("Numbers accuracy", f"{EVALS['numbers']['passed']}/{EVALS['numbers']['total']}",
+                "the month-end close", delta_color="off")
+    c[1].metric("Self-improvement safety", f"{EVALS['safety']['passed']}/{EVALS['safety']['total']}",
+                "guardrail tests", delta_color="off")
     c[2].metric("O2C control tower", f"{EVALS['o2c_suite']['passed']}/{EVALS['o2c_suite']['total']}",
-                f"incl {EVALS['o2c_blind']['caught']}/{EVALS['o2c_blind']['planted']} planted", delta_color="off")
+                f"{EVALS['o2c_blind']['caught']}/{EVALS['o2c_blind']['planted']} planted errors found",
+                delta_color="off")
     c[3].metric("Real audited SEC data", f"{EVALS['dlocal']['passed']}/{EVALS['dlocal']['total']}",
                 "dLocal (NASDAQ: DLO)", delta_color="off")
 
     st.divider()
-    st.markdown("#### 1 · Numbers regression - every close figure locked to ground truth")
-    st.markdown(f"<span class='small'>{EVALS['numbers']['total']} deterministic checks against a fixed "
+    st.markdown("#### 1 · Numbers accuracy - every close figure checked against a known-correct answer")
+    st.markdown(f"<span class='small'>{EVALS['numbers']['total']} automated checks against a fixed "
                 "answer key: P&L, cash, AR/AP/tax, 13-week forecast, internal controls, the full "
-                "record-to-report close, strategic metrics. No model involved.</span>",
+                "record-to-report close, strategic metrics. No AI involved in the check.</span>",
                 unsafe_allow_html=True)
     with st.expander(f"See all {EVALS['numbers']['total']} checks"):
         for ck in EVALS["numbers"]["checks"]:
             st.markdown(f"{'✅' if ck['ok'] else '❌'} <span class='tiny'>{clean(ck['label'])}</span>",
                         unsafe_allow_html=True)
 
-    st.markdown("#### 2 · Self-improvement safety - the AI cannot escape its bounds")
-    st.markdown(f"<span class='small'>{EVALS['safety']['total']} proofs that the self-tuning loop stays "
-                "caged: out-of-bounds rejected, step capped, frozen formulas, eval-regression rejected "
-                "even with a human approval, rollback exact, audit complete.</span>", unsafe_allow_html=True)
+    st.markdown("#### 2 · Self-improvement safety - the AI cannot get past its limits")
+    st.markdown(f"<span class='small'>{EVALS['safety']['total']} proofs that the self-tuning stays inside "
+                "its guardrails: a change outside the allowed limits is rejected, each change is capped in "
+                "size, the formulas can't be touched, a change that would hurt accuracy is rejected even if "
+                "a human approves it, every change can be undone exactly, and everything is logged.</span>",
+                unsafe_allow_html=True)
     with st.expander(f"See all {EVALS['safety']['total']} safety proofs"):
         for t in EVALS["safety"]["tests"]:
             st.markdown(f"✅ <span class='tiny'>{clean(t['desc'])}</span>", unsafe_allow_html=True)
 
-    st.markdown("#### 3 · O2C control tower - and a blind validation")
+    st.markdown("#### 3 · O2C control tower - and a blind test")
     st.markdown(f"<span class='small'>{EVALS['o2c_suite']['total']} tests on the Order-to-Cash tower. "
-                f"The centerpiece is a blind pack with 10 planted issues: the controls catch "
-                f"<b>{EVALS['o2c_blind']['caught']}/{EVALS['o2c_blind']['planted']}</b> by control ID and "
-                f"record ID, and the pipeline returns <b>{EVALS['o2c_blind']['final_status']}</b>.</span>",
-                unsafe_allow_html=True)
-    with st.expander("See the 10 hard controls that fired on the planted issues"):
+                f"The centerpiece is a blind test with 10 deliberately planted errors: the controls catch "
+                f"<b>{EVALS['o2c_blind']['caught']}/{EVALS['o2c_blind']['planted']}</b> of them - by the "
+                f"exact control and the exact record - and the pipeline correctly refuses to release a "
+                f"report.</span>", unsafe_allow_html=True)
+    with st.expander("See the 10 controls that caught the planted errors"):
         for cid in EVALS["o2c_blind"]["hard_failure_ids"]:
             st.markdown(f"⛔ <span class='tiny'><code>{cid}</code></span>", unsafe_allow_html=True)
 
