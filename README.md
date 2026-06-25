@@ -30,46 +30,7 @@ control tower (a sub-orchestration), and the bounded self-improvement loop, all
 under one governance layer: deterministic numbers, maker/checker sign-off, an
 audit trail, and a hard gate that blocks reporting.
 
-```mermaid
-flowchart TD
-  CFO["CFO orchestrator (cfo_orchestrator.py)"]
-  CFO --> CLOSE
-  CFO --> O2C
-  CFO --> SI
-
-  subgraph CLOSE["Month-end close · maker/checker per function"]
-    Controller["Controller"]
-    Treasury["Treasury"]
-    Admin["Administration · AR/AP/Tax"]
-    AcctRep["Accounting &amp; Reporting · Close/Reporting"]
-    FPA["FP&amp;A"]
-    Strat["Strategic Finance"]
-    IC["Internal Controls"]
-    AuditC["Audit · independent"]
-  end
-
-  subgraph O2C["Order-to-Cash control tower · sub-orchestration · 25 controls"]
-    OI["Order Intake"]
-    CM["Customer Master"]
-    CT["Contract"]
-    BI["Billing"]
-    RR["Revenue Recognition"]
-    CO["Collections"]
-    CApp["Cash Application"]
-    DC["Disputes &amp; Credit"]
-    RA["RevOps Analytics"]
-    OA["O2C Audit · independent"]
-  end
-
-  subgraph SI["Bounded self-improvement · propose-only"]
-    Prop["Proposer · deterministic"] --> Gate["Gate · bounds + evals + owner approval"] --> Champ["Champion · versioned · rollback"]
-  end
-
-  CLOSE --> GOV
-  O2C --> GOV
-  SI --> GOV
-  GOV["Governance · deterministic numbers · maker/checker · audit trail · hard gate blocks reporting"]
-```
+![Agentic architecture: a single CFO orchestrator coordinating the month-end close, the Order-to-Cash control tower (a sub-orchestration), and the bounded self-improvement loop under one governance layer of deterministic numbers, maker/checker sign-off, an audit trail, and a hard gate that blocks reporting.](docs/agentic-architecture.png)
 
 ## Projects
 
