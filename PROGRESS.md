@@ -262,10 +262,46 @@ Bitacora de avance, fase por fase.
 - BOUNDARY honesto: sandbox != prod; la sample company es single-entity / single-
   currency (US/USD), asi que valida la capa transaccional (AR/AP/billing) y el R2R
   (P&L, balance, trial balance) contra datos reales, pero NO la consolidacion
-  multi-entidad / multi-moneda (eso lo ejercita solo el modelo sintetico). budget y
+  multi-entidad / multi-moneda (eso lo cierra ERPNext, ver abajo). budget y
   tax_obligations salen vacios para QuickBooks (sin objeto limpio), documentado. El
   fixture commiteado es representativo (modelado sobre las shapes documentadas de
   Intuit); record_fixture.py captura uno real con credenciales propias.
+
+### Fase 7.7 - Segunda fuente real swappable: ERPNext (Frappe)  [OK]
+- sources/erpnext/: ERPNext (Frappe) como SEGUNDO SourceConnector, detras de la MISMA
+  interfaz y la MISMA capa canonica que QuickBooks. NO es una integracion paralela:
+  es otra implementacion de SourceConnector. El motor y el MCP siguen viendo SOLO
+  canonico; manana NetSuite/SAP/Odoo/Zoho igual, sin tocar el motor.
+- Auth: API key + secret (header `Authorization: token key:secret`), sin OAuth dance
+  ni refresh rotativo (mas simple que QBO). Mismo codigo contra Frappe Cloud (free
+  trial) o self-host, switch por env. Secrets solo en .env, nunca commiteados.
+- Adapter read-only ENFORCED en codigo (solo GET; ningun POST/PUT/DELETE): list por
+  /api/resource/<DocType> con paginacion (limit_start/limit_page_length) + fields +
+  filters, y estados financieros por frappe.desk.query_report.run. Backoff ante 429/5xx.
+- Mapper deterministico ERPNext -> canonico, MULTI-COMPANY / MULTI-MONEDA: cada Company
+  = entidad legal; currency = la del documento; Currency Exchange -> units_per_usd para
+  consolidar. Llena las tablas del motor MAS las tablas O2C que extienden el schema
+  canonico COMPARTIDO (crm_opportunities, quotations, sales_orders, credit_notes,
+  collections_reminders, cash_bank); para QuickBooks/sintetico salen vacias.
+- Validaciones determinIsticas EXTENDIDAS (compartidas, source-agnostic, sin forkear):
+  balance cuadra POR company, trial balance balancea POR company, AR ata al control POR
+  company, sin postings futuros, moneda conocida (derivada de fx_rates de la fuente),
+  y fx_rates cubre cada moneda usada. El path single-entity de QuickBooks queda identico
+  (26/26 tests QBO intactos).
+- CIERRA EL GAP: el test engine-end-to-end consolida el fixture de dos companies
+  (USD + GBP a 0.80) a traves del MISMO finance_core -> revenue USD 200.000, operating
+  income 40.000, balance cuadra (A=L+E), cash 240.000. Es la consolidacion multi-entidad
+  / multi-moneda que el sandbox de QuickBooks no podia ejercer.
+- MCP source-agnostic ampliado con tools O2C (get_sales_orders, get_quotations,
+  get_credit_notes, get_collections, get_cash_bank). Cambiar de vendor no cambia la
+  superficie.
+- Tests offline contra un fixture representativo (modelado sobre las shapes documentadas
+  de Frappe; record_fixture.py captura uno real), sumados al CI (47 tests sources en
+  total, sin instancia viva ni secret). Sin regresiones: 22/22 numbers, sources 47/47.
+- BOUNDARY honesto: ERPNext SI ejercita la consolidacion multi-entidad / multi-moneda
+  contra shapes reales de un ERP real, pero sigue siendo data de demo/sandbox, no de una
+  empresa en produccion. budget y tax_obligations salen vacios para ERPNext en esta
+  version (fuera de alcance), documentado.
 
 ## Backlog del departamento (multi-agente, hacia el "full finance department")
 - Faltantes mapeados (ver chat de gap analysis): Strategic Finance [HECHO],

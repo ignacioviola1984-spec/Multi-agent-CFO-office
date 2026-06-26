@@ -161,5 +161,56 @@ def get_chart_of_accounts() -> str:
     return "\n".join(lines)
 
 
+# --------------------------------------------------------------------------
+# Order-to-Cash tools (source-agnostic; empty unless the source fills the
+# optional canonical tables, e.g. ERPNext). Swapping vendor does not change them.
+# --------------------------------------------------------------------------
+def _o2c_block(title, rows, amount_key="amount_local", party_key="customer", extra=()):
+    lines = [f"{title} | source {connector().name} | {len(rows)} record(s)"]
+    total = 0.0
+    for r in rows:
+        amt = float(r.get(amount_key, 0) or 0)
+        total += amt
+        tail = "  ".join(f"{k}={r.get(k, '')}" for k in extra)
+        lines.append(f"  {r.get(party_key, ''):24} {r.get('currency', ''):4} {amt:>14,.0f}  {tail}".rstrip())
+    lines.append(f"  {'TOTAL (document ccy, unconsolidated)':36} {total:>14,.0f}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def get_sales_orders(period: str = DEFAULT_PERIOD) -> str:
+    """Open/!open sales orders for a period (Order-to-Cash). Empty if the source has none."""
+    return _o2c_block("Sales orders", connector().fetch_sales_orders(period),
+                      extra=("order_date", "delivery_date", "status"))
+
+
+@mcp.tool()
+def get_quotations(period: str = DEFAULT_PERIOD) -> str:
+    """Quotations for a period (Order-to-Cash). Empty if the source has none."""
+    return _o2c_block("Quotations", connector().fetch_quotations(period),
+                      extra=("quotation_date", "valid_till", "status"))
+
+
+@mcp.tool()
+def get_credit_notes(period: str = DEFAULT_PERIOD) -> str:
+    """Credit notes / sales returns for a period. Empty if the source has none."""
+    return _o2c_block("Credit notes", connector().fetch_credit_notes(period),
+                      extra=("issue_date", "against_invoice", "status"))
+
+
+@mcp.tool()
+def get_collections(period: str = DEFAULT_PERIOD) -> str:
+    """Collections reminders (dunning / payment requests). Empty if the source has none."""
+    return _o2c_block("Collections reminders", connector().fetch_collections(period),
+                      extra=("reminder_type", "reminder_date", "status"))
+
+
+@mcp.tool()
+def get_cash_bank(period: str = DEFAULT_PERIOD) -> str:
+    """Cash / bank accounts and balances. Empty if the source has none."""
+    return _o2c_block("Cash & bank", connector().fetch_cash_bank(period),
+                      amount_key="balance", party_key="account_name", extra=("bank",))
+
+
 if __name__ == "__main__":
     mcp.run()

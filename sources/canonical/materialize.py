@@ -33,7 +33,10 @@ from schema import CONTRACT_TABLES, EXTRA_TABLES
 import csvio
 import validate as validate_mod
 import writer as snapshot_writer
-from connector import SyntheticConnector, QuickBooksConnector, SYNTHETIC_DATA_DIR
+from connector import (SyntheticConnector, QuickBooksConnector, ERPNextConnector,
+                       SYNTHETIC_DATA_DIR, load_erpnext)
+
+LIVE_SOURCES = ("quickbooks", "erpnext")     # sources that extract -> validate -> snapshot -> materialize
 
 ALL_COLUMNS = {**CONTRACT_TABLES, **EXTRA_TABLES}
 ACTIVE_DIR = os.path.join(_SRC, "canonical", "_active")        # materialized canonical (gitignored)
@@ -56,13 +59,13 @@ def active_data_dir(source=None):
     src = current_source(source)
     if src == "synthetic":
         return os.path.abspath(SYNTHETIC_DATA_DIR)
-    if src == "quickbooks":
+    if src in LIVE_SOURCES:
         if not os.path.exists(os.path.join(ACTIVE_DIR, "pnl_activity.csv")):
             raise RuntimeError(
-                "no materialized QuickBooks canonical yet; run "
-                "`python sources/canonical/materialize.py --period <YYYY-MM> --source quickbooks` first")
+                f"no materialized {src} canonical yet; run "
+                f"`python sources/canonical/materialize.py --period <YYYY-MM> --source {src}` first")
         return os.path.abspath(ACTIVE_DIR)
-    raise ValueError(f"unknown SOURCE '{src}' (expected synthetic|quickbooks)")
+    raise ValueError(f"unknown SOURCE '{src}' (expected synthetic|{'|'.join(LIVE_SOURCES)})")
 
 
 def build_connector(source=None):
@@ -73,30 +76,54 @@ def build_connector(source=None):
         from oauth import Config
         from adapter import QuickBooksAdapter
         return QuickBooksConnector(QuickBooksAdapter(Config()))
+    if src == "erpnext":
+        adapter_mod, _ = load_erpnext()
+        return ERPNextConnector(adapter_mod.ERPNextAdapter(adapter_mod.Config()))
     raise ValueError(f"unknown SOURCE '{src}'")
 
 
-def run_quickbooks_pipeline(period, connector=None, now_iso=None, snapshot_base=SNAPSHOT_BASE,
-                            out_dir=ACTIVE_DIR):
-    """Extract -> canonical -> validate -> snapshot -> materialize. Returns a dict."""
-    connector = connector or build_connector("quickbooks")
+def _snapshot_identity(connector, source):
+    """(identity, extra_manifest) for the snapshot path and manifest. The identity
+    is the realm (QuickBooks) or the site host (ERPNext)."""
+    cfg = getattr(connector, "adapter", None)
+    cfg = getattr(cfg, "config", None)
+    if source == "erpnext":
+        site = getattr(cfg, "site_label", "") or "erpnext"
+        return site, {"site_url": getattr(cfg, "base_url", ""),
+                      "companies": list(getattr(cfg, "companies", []) or [])}
+    realm = getattr(cfg, "realm_id", "") or os.environ.get("QBO_REALM_ID", "sandbox")
+    return realm, {}
+
+
+def run_pipeline(period, source, connector=None, now_iso=None, snapshot_base=SNAPSHOT_BASE,
+                 out_dir=ACTIVE_DIR):
+    """Extract -> canonical -> validate -> snapshot -> materialize, for any live
+    source. Returns a dict. Source-agnostic; QuickBooks and ERPNext both use it."""
+    connector = connector or build_connector(source)
     raw = connector.extract_raw(period)
     tables = connector.canonical_tables(period)
     result = validate_mod.validate_canonical(tables, period)
     now_iso = now_iso or datetime.datetime.now(datetime.timezone.utc).isoformat()
-    realm = getattr(getattr(connector, "adapter", None), "config", None)
-    realm_id = getattr(realm, "realm_id", "") or os.environ.get("QBO_REALM_ID", "sandbox")
+    identity, extra = _snapshot_identity(connector, source)
     snap_dir, manifest = snapshot_writer.write_snapshot(
-        snapshot_base, realm_id, period, raw, tables, result, now_iso)
+        snapshot_base, identity, period, raw, tables, result, now_iso, source=source, extra=extra)
     write_canonical_tables(tables, out_dir)
     return {"snapshot_dir": snap_dir, "data_dir": os.path.abspath(out_dir),
             "validation": result, "manifest": manifest, "tables": tables}
 
 
+def run_quickbooks_pipeline(period, connector=None, now_iso=None, snapshot_base=SNAPSHOT_BASE,
+                            out_dir=ACTIVE_DIR):
+    """Back-compat wrapper: the QuickBooks path of the generic pipeline."""
+    return run_pipeline(period, "quickbooks", connector=connector, now_iso=now_iso,
+                        snapshot_base=snapshot_base, out_dir=out_dir)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Materialize canonical data from the active source")
     ap.add_argument("--period", default="2026-05", help="reporting period YYYY-MM")
-    ap.add_argument("--source", default=None, help="synthetic|quickbooks (default: $SOURCE)")
+    ap.add_argument("--source", default=None,
+                    help=f"synthetic|{'|'.join(LIVE_SOURCES)} (default: $SOURCE)")
     ap.add_argument("--print-data-dir", action="store_true",
                     help="just print the active canonical data dir and exit")
     args = ap.parse_args(argv)
@@ -109,8 +136,10 @@ def main(argv=None):
     if src == "synthetic":
         print(f"SOURCE=synthetic: engine reads {os.path.abspath(SYNTHETIC_DATA_DIR)} (nothing to do)")
         return 0
+    if src not in LIVE_SOURCES:
+        raise ValueError(f"unknown SOURCE '{src}' (expected synthetic|{'|'.join(LIVE_SOURCES)})")
 
-    res = run_quickbooks_pipeline(args.period, connector=build_connector("quickbooks"))
+    res = run_pipeline(args.period, src, connector=build_connector(src))
     vr = res["validation"]
     print(f"period {args.period} | snapshot {res['snapshot_dir']}")
     print(f"validation: {'PASS' if vr['pass'] else 'FAIL'}")

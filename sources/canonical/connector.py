@@ -10,7 +10,9 @@ so finance_core and the MCP surface never learn a vendor's object names.
 """
 
 import datetime
+import importlib.util
 import os
+import sys
 from abc import ABC, abstractmethod
 
 from schema import CONTRACT_TABLES, EXTRA_TABLES
@@ -19,6 +21,36 @@ import csvio
 HERE = os.path.dirname(os.path.abspath(__file__))
 SYNTHETIC_DATA_DIR = os.path.join(HERE, "..", "..", "finance-mcp", "data")
 _PERIOD_SCOPED = ("pnl_activity", "balance_sheet", "budget")
+
+# ERPNext vendor modules share file names (adapter.py / mapper.py) with the
+# QuickBooks ones, so under the repo's flat-import scheme they would collide.
+# Load them by absolute path under UNIQUE module names instead of putting
+# sources/erpnext on sys.path. ('auth' is unique to ERPNext, so registering it is
+# safe and lets erpnext/adapter.py's `from auth import Config` resolve.)
+_ERP_DIR = os.path.abspath(os.path.join(HERE, "..", "erpnext"))
+_erp_cache = {}
+
+
+def load_erpnext():
+    """Return (adapter_module, mapper_module) for the ERPNext source, loaded by
+    path under unique names so they never shadow the QuickBooks modules."""
+    if "adapter" in _erp_cache:
+        return _erp_cache["adapter"], _erp_cache["mapper"]
+
+    def _load(modname, filename):
+        if modname in sys.modules:
+            return sys.modules[modname]
+        spec = importlib.util.spec_from_file_location(modname, os.path.join(_ERP_DIR, filename))
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[modname] = mod
+        spec.loader.exec_module(mod)
+        return mod
+
+    _load("auth", "auth.py")                       # for erpnext/adapter.py's `from auth import`
+    adapter = _load("erpnext_adapter", "adapter.py")
+    mapper = _load("erpnext_mapper", "mapper.py")
+    _erp_cache["adapter"], _erp_cache["mapper"] = adapter, mapper
+    return adapter, mapper
 
 
 def period_bounds(period):
@@ -59,6 +91,25 @@ class SourceConnector(ABC):
 
     def fetch_payments(self, period=None):
         return self.canonical_tables(period).get("payments", [])
+
+    # ----- Order-to-Cash fetchers (optional; empty unless the source fills them) -
+    def fetch_sales_orders(self, period=None):
+        return self.canonical_tables(period).get("sales_orders", [])
+
+    def fetch_quotations(self, period=None):
+        return self.canonical_tables(period).get("quotations", [])
+
+    def fetch_credit_notes(self, period=None):
+        return self.canonical_tables(period).get("credit_notes", [])
+
+    def fetch_collections(self, period=None):
+        return self.canonical_tables(period).get("collections_reminders", [])
+
+    def fetch_cash_bank(self, period=None):
+        return self.canonical_tables(period).get("cash_bank", [])
+
+    def fetch_opportunities(self, period=None):
+        return self.canonical_tables(period).get("crm_opportunities", [])
 
 
 class SyntheticConnector(SourceConnector):
@@ -119,3 +170,34 @@ class QuickBooksConnector(SourceConnector):
             raise ValueError("QuickBooksConnector requires an explicit period (YYYY-MM)")
         import mapper
         return mapper.build_canonical(self.extract_raw(period), self.entity_id, self.entity_name, period)
+
+
+class ERPNextConnector(SourceConnector):
+    """Live ERPNext (Frappe) -> canonical, via the read-only adapter. Multi-company
+    and multi-currency: each ERPNext Company becomes a canonical entity, so this
+    source exercises the consolidation the QuickBooks sandbox could not.
+
+    Vendor-agnostic by construction: every Frappe object name (DocTypes, report
+    names, fields, filters) lives in sources/erpnext/ (the adapter's extract_raw
+    and the mapper). This class only wires the adapter to the mapper and caches
+    per period - it never names a Frappe object."""
+
+    name = "erpnext"
+
+    def __init__(self, adapter, default_country=None):
+        self.adapter = adapter
+        self.default_country = default_country or os.environ.get("ERPNEXT_DEFAULT_COUNTRY", "United States")
+        self._raw_cache = {}
+
+    def extract_raw(self, period):
+        """Pull every read-only response needed for `period` (cached). The Frappe
+        extraction recipe lives in the adapter; this just caches it."""
+        if period not in self._raw_cache:
+            self._raw_cache[period] = self.adapter.extract_raw(period)
+        return self._raw_cache[period]
+
+    def canonical_tables(self, period=None):
+        if not period:
+            raise ValueError("ERPNextConnector requires an explicit period (YYYY-MM)")
+        _, mapper = load_erpnext()
+        return mapper.build_canonical(self.extract_raw(period), period, self.default_country)

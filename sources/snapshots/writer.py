@@ -37,8 +37,14 @@ def _sha256_file(path):
     return h.hexdigest()
 
 
-def write_snapshot(base_dir, realm_id, period, raw, canonical, validation_result, extract_timestamp):
-    """Freeze one extraction. Returns the snapshot dir and the manifest dict."""
+def write_snapshot(base_dir, realm_id, period, raw, canonical, validation_result, extract_timestamp,
+                   source=None, extra=None):
+    """Freeze one extraction. Returns the snapshot dir and the manifest dict.
+
+    `realm_id` is the source identity in the snapshot path (a QuickBooks realm, an
+    ERPNext site host, ...). `source` and `extra` (e.g. site_url, companies) are
+    optional and only added to the manifest when provided, so existing callers
+    are unaffected."""
     realm = str(realm_id) or "unknown-realm"
     snap_dir = os.path.join(base_dir, realm, period, _ts_token(extract_timestamp))
     raw_dir = os.path.join(snap_dir, "raw")
@@ -73,6 +79,10 @@ def write_snapshot(base_dir, realm_id, period, raw, canonical, validation_result
         "hashes": hashes,
         "validation_result": validation_result,
     }
+    if source:
+        manifest["source"] = source
+    if extra:
+        manifest.update({k: v for k, v in extra.items() if k not in manifest})
     mpath = os.path.join(snap_dir, "manifest.json")
     with open(mpath, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, sort_keys=True)

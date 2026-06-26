@@ -48,6 +48,13 @@ CONTRACT_TABLES = {
 
 # Richer canonical tables (not consumed by finance_core; carried in the snapshot
 # and exposed read-only over MCP for traceability).
+#
+# The first block is the original set (QuickBooks + synthetic fill these). The
+# second block ("Order-to-Cash") extends the SHARED canonical schema for richer
+# sources: ERPNext fills these from its Opportunity / Quotation / Sales Order /
+# Credit Note / Dunning / Bank objects; QuickBooks (and synthetic) leave them
+# empty. They are optional everywhere downstream, so no engine or MCP code has to
+# know which source produced them.
 EXTRA_TABLES = {
     "trial_balance":   ["entity_id", "period", "account_code", "account_name",
                         "debit", "credit", "currency"],
@@ -57,7 +64,25 @@ EXTRA_TABLES = {
     "vendors":         ["vendor_id", "entity_id", "name", "currency", "balance"],
     "journal_entries": ["je_id", "entity_id", "period", "account_code",
                         "debit", "credit", "currency", "txn_date"],
+    # --- Order-to-Cash (optional; filled by ERPNext, empty for QuickBooks) ---
+    "crm_opportunities":    ["opportunity_id", "entity_id", "customer", "currency",
+                             "amount_local", "stage", "status", "opportunity_date"],
+    "quotations":           ["quotation_id", "entity_id", "customer", "currency",
+                             "amount_local", "quotation_date", "valid_till", "status"],
+    "sales_orders":         ["sales_order_id", "entity_id", "customer", "currency",
+                             "amount_local", "order_date", "delivery_date", "status"],
+    "credit_notes":         ["credit_note_id", "entity_id", "customer", "currency",
+                             "amount_local", "issue_date", "against_invoice", "status"],
+    "collections_reminders": ["reminder_id", "entity_id", "customer", "currency",
+                              "amount_local", "reminder_type", "reminder_date", "status"],
+    "cash_bank":            ["account_id", "entity_id", "account_name", "bank",
+                             "currency", "balance"],
 }
+
+# The Order-to-Cash extension tables, in one place so connectors/MCP can iterate
+# them without hardcoding the list.
+O2C_TABLES = ("crm_opportunities", "quotations", "sales_orders", "credit_notes",
+              "collections_reminders", "cash_bank")
 
 ALL_TABLES = {**CONTRACT_TABLES, **EXTRA_TABLES}
 

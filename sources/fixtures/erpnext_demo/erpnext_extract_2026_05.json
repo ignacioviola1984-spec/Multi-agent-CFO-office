@@ -1,0 +1,697 @@
+{
+  "accounts": [
+    {
+      "account_name": "Sales",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Sales - LUS",
+      "root_type": "Income"
+    },
+    {
+      "account_name": "Cost of Goods Sold",
+      "account_type": "Cost of Goods Sold",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Cost of Goods Sold - LUS",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Marketing Expenses",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Marketing Expenses - LUS",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Research and Development",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Research and Development - LUS",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Administrative Expenses",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Administrative Expenses - LUS",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Cash",
+      "account_type": "Bank",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Cash - LUS",
+      "root_type": "Asset"
+    },
+    {
+      "account_name": "Debtors",
+      "account_type": "Receivable",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Debtors - LUS",
+      "root_type": "Asset"
+    },
+    {
+      "account_name": "Fixed Assets",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Fixed Assets - LUS",
+      "root_type": "Asset"
+    },
+    {
+      "account_name": "Creditors",
+      "account_type": "Payable",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Creditors - LUS",
+      "root_type": "Liability"
+    },
+    {
+      "account_name": "Deferred Revenue",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Deferred Revenue - LUS",
+      "root_type": "Liability"
+    },
+    {
+      "account_name": "Paid-in Capital",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Paid-in Capital - LUS",
+      "root_type": "Equity"
+    },
+    {
+      "account_name": "Retained Earnings",
+      "account_type": "",
+      "company": "Lumen US Inc.",
+      "is_group": 0,
+      "name": "Retained Earnings - LUS",
+      "root_type": "Equity"
+    },
+    {
+      "account_name": "Sales",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Sales - LUK",
+      "root_type": "Income"
+    },
+    {
+      "account_name": "Cost of Goods Sold",
+      "account_type": "Cost of Goods Sold",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Cost of Goods Sold - LUK",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Marketing Expenses",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Marketing Expenses - LUK",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Research and Development",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Research and Development - LUK",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Administrative Expenses",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Administrative Expenses - LUK",
+      "root_type": "Expense"
+    },
+    {
+      "account_name": "Cash",
+      "account_type": "Bank",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Cash - LUK",
+      "root_type": "Asset"
+    },
+    {
+      "account_name": "Debtors",
+      "account_type": "Receivable",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Debtors - LUK",
+      "root_type": "Asset"
+    },
+    {
+      "account_name": "Fixed Assets",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Fixed Assets - LUK",
+      "root_type": "Asset"
+    },
+    {
+      "account_name": "Creditors",
+      "account_type": "Payable",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Creditors - LUK",
+      "root_type": "Liability"
+    },
+    {
+      "account_name": "Deferred Revenue",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Deferred Revenue - LUK",
+      "root_type": "Liability"
+    },
+    {
+      "account_name": "Paid-in Capital",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Paid-in Capital - LUK",
+      "root_type": "Equity"
+    },
+    {
+      "account_name": "Retained Earnings",
+      "account_type": "",
+      "company": "Lumen UK Ltd.",
+      "is_group": 0,
+      "name": "Retained Earnings - LUK",
+      "root_type": "Equity"
+    }
+  ],
+  "bank_accounts": [
+    {
+      "account_currency": "USD",
+      "account_name": "Main Checking",
+      "balance": 120000,
+      "bank": "First Bank",
+      "company": "Lumen US Inc.",
+      "name": "Main Checking - LUS"
+    },
+    {
+      "account_currency": "GBP",
+      "account_name": "UK Current",
+      "balance": 96000,
+      "bank": "Barclays",
+      "company": "Lumen UK Ltd.",
+      "name": "UK Current - LUK"
+    }
+  ],
+  "companies": [
+    {
+      "abbr": "LUS",
+      "company": "Lumen US Inc.",
+      "company_name": "Lumen US Inc.",
+      "country": "United States",
+      "default_currency": "USD",
+      "name": "Lumen US Inc."
+    },
+    {
+      "abbr": "LUK",
+      "company": "Lumen UK Ltd.",
+      "company_name": "Lumen UK Ltd.",
+      "country": "United Kingdom",
+      "default_currency": "GBP",
+      "name": "Lumen UK Ltd."
+    }
+  ],
+  "customers": [
+    {
+      "company": "Lumen US Inc.",
+      "customer_name": "Acme US",
+      "default_currency": "USD",
+      "name": "Acme US",
+      "outstanding_amount": 18000
+    },
+    {
+      "company": "Lumen US Inc.",
+      "customer_name": "Globex US",
+      "default_currency": "USD",
+      "name": "Globex US",
+      "outstanding_amount": 20000
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "customer_name": "Britco",
+      "default_currency": "GBP",
+      "name": "Britco",
+      "outstanding_amount": 25000
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "customer_name": "Londis",
+      "default_currency": "GBP",
+      "name": "Londis",
+      "outstanding_amount": 15000
+    }
+  ],
+  "dunnings": [
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "customer": "Globex US",
+      "dunning_type": "First Notice",
+      "name": "DUNN-US-001",
+      "outstanding_amount": 20000,
+      "posting_date": "2026-05-26",
+      "status": "Unresolved"
+    }
+  ],
+  "fx_rates": [
+    {
+      "date": "2026-05-31",
+      "exchange_rate": 0.8,
+      "from_currency": "USD",
+      "name": "USD-GBP",
+      "to_currency": "GBP"
+    }
+  ],
+  "gl_entries": [
+    {
+      "account": "Sales - LUS",
+      "account_currency": "USD",
+      "company": "Lumen US Inc.",
+      "credit": 100000,
+      "debit": 0,
+      "name": "GL-US-1",
+      "posting_date": "2026-05-31",
+      "voucher_no": "SINV-US-001",
+      "voucher_type": "Sales Invoice"
+    },
+    {
+      "account": "Debtors - LUS",
+      "account_currency": "USD",
+      "company": "Lumen US Inc.",
+      "credit": 0,
+      "debit": 50000,
+      "name": "GL-US-2",
+      "posting_date": "2026-05-31",
+      "voucher_no": "SINV-US-001",
+      "voucher_type": "Sales Invoice"
+    },
+    {
+      "account": "Sales - LUK",
+      "account_currency": "GBP",
+      "company": "Lumen UK Ltd.",
+      "credit": 80000,
+      "debit": 0,
+      "name": "GL-UK-1",
+      "posting_date": "2026-05-31",
+      "voucher_no": "SINV-UK-001",
+      "voucher_type": "Sales Invoice"
+    }
+  ],
+  "opportunities": [
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "name": "OPP-US-001",
+      "opportunity_amount": 50000,
+      "party_name": "Lead X",
+      "sales_stage": "Qualification",
+      "status": "Open",
+      "transaction_date": "2026-05-02"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "currency": "GBP",
+      "name": "OPP-UK-001",
+      "opportunity_amount": 35000,
+      "party_name": "Lead Y",
+      "sales_stage": "Proposal/Price Quote",
+      "status": "Open",
+      "transaction_date": "2026-05-03"
+    }
+  ],
+  "payment_entries": [
+    {
+      "company": "Lumen US Inc.",
+      "name": "PE-US-001",
+      "paid_amount": 12000,
+      "party": "Acme US",
+      "party_account_currency": "USD",
+      "party_type": "Customer",
+      "payment_type": "Receive",
+      "posting_date": "2026-05-20"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "name": "PE-UK-001",
+      "paid_amount": 5000,
+      "party": "UK Vendor",
+      "party_account_currency": "GBP",
+      "party_type": "Supplier",
+      "payment_type": "Pay",
+      "posting_date": "2026-05-22"
+    }
+  ],
+  "payment_requests": [
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "grand_total": 30000,
+      "name": "PREQ-US-001",
+      "party": "Acme US",
+      "status": "Initiated",
+      "transaction_date": "2026-05-25"
+    }
+  ],
+  "purchase_invoices": [
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "due_date": "2026-05-30",
+      "grand_total": 15000,
+      "name": "PINV-US-001",
+      "outstanding_amount": 15000,
+      "posting_date": "2026-05-10",
+      "status": "Unpaid",
+      "supplier": "Supplies Inc"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "currency": "GBP",
+      "due_date": "2026-06-11",
+      "grand_total": 10000,
+      "name": "PINV-UK-001",
+      "outstanding_amount": 10000,
+      "posting_date": "2026-05-12",
+      "status": "Unpaid",
+      "supplier": "UK Vendor"
+    }
+  ],
+  "quotations": [
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "grand_total": 25000,
+      "name": "QTN-US-001",
+      "party_name": "Prospect A",
+      "status": "Open",
+      "transaction_date": "2026-05-01",
+      "valid_till": "2026-05-31"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "currency": "GBP",
+      "grand_total": 18000,
+      "name": "QTN-UK-001",
+      "party_name": "Prospect B",
+      "status": "Open",
+      "transaction_date": "2026-05-04",
+      "valid_till": "2026-06-03"
+    }
+  ],
+  "reports": {
+    "Lumen UK Ltd.": {
+      "balance_sheet": [
+        {
+          "account": "Cash - LUK",
+          "account_name": "Cash",
+          "account_type": "Bank",
+          "amount": 96000,
+          "root_type": "Asset"
+        },
+        {
+          "account": "Debtors - LUK",
+          "account_name": "Debtors",
+          "account_type": "Receivable",
+          "amount": 40000,
+          "root_type": "Asset"
+        },
+        {
+          "account": "Fixed Assets - LUK",
+          "account_name": "Fixed Assets",
+          "amount": 24000,
+          "root_type": "Asset"
+        },
+        {
+          "account": "Creditors - LUK",
+          "account_name": "Creditors",
+          "account_type": "Payable",
+          "amount": 16000,
+          "root_type": "Liability"
+        },
+        {
+          "account": "Deferred Revenue - LUK",
+          "account_name": "Deferred Revenue",
+          "amount": 24000,
+          "root_type": "Liability"
+        },
+        {
+          "account": "Paid-in Capital - LUK",
+          "account_name": "Paid-in Capital",
+          "amount": 80000,
+          "root_type": "Equity"
+        },
+        {
+          "account": "Retained Earnings - LUK",
+          "account_name": "Retained Earnings",
+          "amount": 40000,
+          "root_type": "Equity"
+        }
+      ],
+      "profit_and_loss": [
+        {
+          "account": "Sales - LUK",
+          "account_name": "Sales",
+          "amount": 80000,
+          "root_type": "Income"
+        },
+        {
+          "account": "Cost of Goods Sold - LUK",
+          "account_name": "Cost of Goods Sold",
+          "account_type": "Cost of Goods Sold",
+          "amount": 32000,
+          "root_type": "Expense"
+        },
+        {
+          "account": "Marketing Expenses - LUK",
+          "account_name": "Marketing Expenses",
+          "amount": 8000,
+          "root_type": "Expense"
+        },
+        {
+          "account": "Research and Development - LUK",
+          "account_name": "Research and Development",
+          "amount": 4000,
+          "root_type": "Expense"
+        },
+        {
+          "account": "Administrative Expenses - LUK",
+          "account_name": "Administrative Expenses",
+          "amount": 16000,
+          "root_type": "Expense"
+        }
+      ]
+    },
+    "Lumen US Inc.": {
+      "balance_sheet": [
+        {
+          "account": "Cash - LUS",
+          "account_name": "Cash",
+          "account_type": "Bank",
+          "amount": 120000,
+          "root_type": "Asset"
+        },
+        {
+          "account": "Debtors - LUS",
+          "account_name": "Debtors",
+          "account_type": "Receivable",
+          "amount": 50000,
+          "root_type": "Asset"
+        },
+        {
+          "account": "Fixed Assets - LUS",
+          "account_name": "Fixed Assets",
+          "amount": 30000,
+          "root_type": "Asset"
+        },
+        {
+          "account": "Creditors - LUS",
+          "account_name": "Creditors",
+          "account_type": "Payable",
+          "amount": 25000,
+          "root_type": "Liability"
+        },
+        {
+          "account": "Deferred Revenue - LUS",
+          "account_name": "Deferred Revenue",
+          "amount": 20000,
+          "root_type": "Liability"
+        },
+        {
+          "account": "Paid-in Capital - LUS",
+          "account_name": "Paid-in Capital",
+          "amount": 100000,
+          "root_type": "Equity"
+        },
+        {
+          "account": "Retained Earnings - LUS",
+          "account_name": "Retained Earnings",
+          "amount": 55000,
+          "root_type": "Equity"
+        }
+      ],
+      "profit_and_loss": [
+        {
+          "account": "Sales - LUS",
+          "account_name": "Sales",
+          "amount": 100000,
+          "root_type": "Income"
+        },
+        {
+          "account": "Cost of Goods Sold - LUS",
+          "account_name": "Cost of Goods Sold",
+          "account_type": "Cost of Goods Sold",
+          "amount": 40000,
+          "root_type": "Expense"
+        },
+        {
+          "account": "Marketing Expenses - LUS",
+          "account_name": "Marketing Expenses",
+          "amount": 15000,
+          "root_type": "Expense"
+        },
+        {
+          "account": "Research and Development - LUS",
+          "account_name": "Research and Development",
+          "amount": 10000,
+          "root_type": "Expense"
+        },
+        {
+          "account": "Administrative Expenses - LUS",
+          "account_name": "Administrative Expenses",
+          "amount": 20000,
+          "root_type": "Expense"
+        }
+      ]
+    }
+  },
+  "sales_invoices": [
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "customer": "Acme US",
+      "due_date": "2026-05-25",
+      "grand_total": 30000,
+      "is_return": 0,
+      "name": "SINV-US-001",
+      "outstanding_amount": 30000,
+      "posting_date": "2026-05-05",
+      "status": "Overdue"
+    },
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "customer": "Globex US",
+      "due_date": "2026-06-14",
+      "grand_total": 20000,
+      "is_return": 0,
+      "name": "SINV-US-002",
+      "outstanding_amount": 20000,
+      "posting_date": "2026-05-15",
+      "status": "Unpaid"
+    },
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "customer": "Acme US",
+      "due_date": "2026-05-22",
+      "grand_total": 12000,
+      "is_return": 0,
+      "name": "SINV-US-003",
+      "outstanding_amount": 0,
+      "posting_date": "2026-05-02",
+      "status": "Paid"
+    },
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "customer": "Acme US",
+      "grand_total": -5000,
+      "is_return": 1,
+      "name": "SINV-US-CN1",
+      "outstanding_amount": 0,
+      "posting_date": "2026-05-20",
+      "return_against": "SINV-US-001",
+      "status": "Return"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "currency": "GBP",
+      "customer": "Britco",
+      "due_date": "2026-05-28",
+      "grand_total": 25000,
+      "is_return": 0,
+      "name": "SINV-UK-001",
+      "outstanding_amount": 25000,
+      "posting_date": "2026-05-08",
+      "status": "Overdue"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "currency": "GBP",
+      "customer": "Londis",
+      "due_date": "2026-06-17",
+      "grand_total": 15000,
+      "is_return": 0,
+      "name": "SINV-UK-002",
+      "outstanding_amount": 15000,
+      "posting_date": "2026-05-18",
+      "status": "Unpaid"
+    }
+  ],
+  "sales_orders": [
+    {
+      "company": "Lumen US Inc.",
+      "currency": "USD",
+      "customer": "Acme US",
+      "delivery_date": "2026-05-20",
+      "grand_total": 40000,
+      "name": "SO-US-001",
+      "status": "To Deliver and Bill",
+      "transaction_date": "2026-05-03"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "currency": "GBP",
+      "customer": "Britco",
+      "delivery_date": "2026-05-26",
+      "grand_total": 30000,
+      "name": "SO-UK-001",
+      "status": "To Bill",
+      "transaction_date": "2026-05-06"
+    }
+  ],
+  "suppliers": [
+    {
+      "company": "Lumen US Inc.",
+      "default_currency": "USD",
+      "name": "Supplies Inc",
+      "outstanding_amount": 15000,
+      "supplier_name": "Supplies Inc"
+    },
+    {
+      "company": "Lumen UK Ltd.",
+      "default_currency": "GBP",
+      "name": "UK Vendor",
+      "outstanding_amount": 5000,
+      "supplier_name": "UK Vendor"
+    }
+  ]
+}
