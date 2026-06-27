@@ -182,5 +182,4 @@ pilot.
 
 ---
 
-**Want this on your data?** See [`OFFERING.md`](OFFERING.md). Built by **Ignacio
-Viola** — 17 years in senior finance, now building the systems.
+Built by **Ignacio Viola** — 17 years in senior finance, now building the systems.

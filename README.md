@@ -27,7 +27,7 @@ systems.
 > [`test-dlocal/AUDIT_EVIDENCE.md`](test-dlocal/AUDIT_EVIDENCE.md).
 
 > **See it run:** [`CASE-STUDY.md`](CASE-STUDY.md) walks a month-end close end to end
-> on synthetic data (every figure computed in code). **Work with me:** [`OFFERING.md`](OFFERING.md).
+> on synthetic data (every figure computed in code).
 
 ## Agentic architecture
 
@@ -245,8 +245,7 @@ transaction-level agents and multi-entity consolidation remain on synthetic data
 since no public company discloses transaction-level detail. The exercise is
 illustrative and uses public data only.
 
-Available for **finance-transformation roles** —
-see [`OFFERING.md`](OFFERING.md).
+Available for **finance-transformation roles**.
 
 ## License
 
