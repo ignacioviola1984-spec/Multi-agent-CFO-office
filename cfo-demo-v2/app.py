@@ -53,7 +53,7 @@ def scroll_to(target):
         f"const loop=()=>{{{step}if(n++<42)setTimeout(loop,16);}};loop();</script>", height=0)
 
 st.set_page_config(page_title="AI Finance Operating Model - Live Demo",
-                   page_icon="📊", layout="wide")
+                   page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 
 # --------------------------------------------------------------------------
