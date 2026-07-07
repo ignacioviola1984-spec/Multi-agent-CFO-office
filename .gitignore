@@ -13,6 +13,11 @@ qbo_tokens.json
 sources/canonical/_active/
 sources/snapshots/data/
 
+# O2C control tower per-run output history: run_o2c_control_tower.py writes each
+# run to cfo-office/o2c/outputs/runs/<run_id>/ and mirrors it to outputs/latest/.
+# The history is generated locally and never committed.
+cfo-office/o2c/outputs/runs/
+
 # Real LendingClub data (large, ~1.6GB+ each) — never commit; the seeded samples
 # and public_filings.csv stay versioned, the real Kaggle files do not.
 lendingclub-data/accepted_2007_to_2018Q4.csv

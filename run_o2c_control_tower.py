@@ -12,6 +12,7 @@ and prints a side-by-side comparison. No API keys, no external services.
 """
 
 import argparse
+import datetime
 import os
 import sys
 
@@ -31,9 +32,10 @@ def _m(x):
     return f"USD {x:,.0f}"
 
 
-def gather(period):
+def gather(period, history_run_id=None, history_subdir=None):
     """Run one period and return its comparison row + context."""
-    ctx, meta = orch.run(period=period, verbose=False)
+    ctx, meta = orch.run(period=period, verbose=False, history_run_id=history_run_id,
+                         history_subdir=history_subdir)
     s = ctx.calc["summary"]
     c = ctx.calc["controls_summary"]
     row = {
@@ -53,8 +55,8 @@ def gather(period):
     return row, ctx, meta
 
 
-def print_single(period):
-    row, ctx, meta = gather(period)
+def print_single(period, history_run_id=None):
+    row, ctx, meta = gather(period, history_run_id)
     s = ctx.calc["summary"]
     print("=" * 64)
     print(f"  O2C / REVENUE OPERATIONS CONTROL TOWER  |  period {period}")
@@ -90,17 +92,25 @@ def print_single(period):
     if not issues:
         print("    (none)")
 
-    print(f"\n  OUTPUTS written to {orch.DEFAULT_OUTPUT_DIR}:")
+    run_dir = (os.path.join(orch.DEFAULT_OUTPUT_DIR, "runs", history_run_id)
+               if history_run_id else orch.DEFAULT_OUTPUT_DIR)
+    print(f"\n  OUTPUTS written to {run_dir}:")
     for fn in meta["output_files"]:
         print(f"    - {fn}")
+    if history_run_id:
+        print(f"  latest copy (stable path): {os.path.join(orch.DEFAULT_OUTPUT_DIR, 'latest')}")
     print("\n  (deterministic numbers; agents diagnose and narrate but never invent a figure)")
 
 
-def compare_periods(periods=COMPARE_PERIODS, do_print=True):
-    """Run each period and return {period: row}; optionally print side by side."""
+def compare_periods(periods=COMPARE_PERIODS, do_print=True, history_run_id=None):
+    """Run each period and return {period: row}; optionally print side by side.
+
+    When history_run_id is given (the scheduled --compare path), each period is
+    archived under runs/<run_id>/<period>/ and mirrored to latest/<period>/, so a
+    scheduled comparison keeps full per-period history under one run id."""
     rows = {}
     for p in periods:
-        row, _ctx, _meta = gather(p)
+        row, _ctx, _meta = gather(p, history_run_id=history_run_id, history_subdir=p)
         rows[p] = row
     if do_print:
         labels = [
@@ -130,6 +140,11 @@ def compare_periods(periods=COMPARE_PERIODS, do_print=True):
         print("\n  2026-05 is the intentionally problematic period (blocked by hard controls).")
         print("  2026-06 is the clean period: the source data ties out, so it passes - no")
         print("  thresholds were relaxed; only the data differs.")
+        if history_run_id:
+            print(f"\n  ARCHIVED to {os.path.join(orch.DEFAULT_OUTPUT_DIR, 'runs', history_run_id)}"
+                  + os.sep + "<period>/")
+            print(f"  latest copy (stable path): {os.path.join(orch.DEFAULT_OUTPUT_DIR, 'latest')}"
+                  + os.sep + "<period>/")
     return rows
 
 
@@ -139,10 +154,14 @@ def main():
     ap.add_argument("--compare", action="store_true",
                     help="run both 2026-05 and 2026-06 and print a side-by-side comparison")
     args = ap.parse_args()
+    # run_id: ONE UTC timestamp per invocation; names the run folder under
+    # outputs/runs/ and is recorded (as run_dir) in o2c_audit_trail.json. --compare
+    # archives every period under this single run id (runs/<run_id>/<period>/).
+    run_id = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     if args.compare:
-        compare_periods()
+        compare_periods(history_run_id=run_id)
     else:
-        print_single(args.period)
+        print_single(args.period, history_run_id=run_id)
 
 
 if __name__ == "__main__":
