@@ -22,7 +22,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..")
 for sub in ("api-integration", "orchestration", "document-intelligence"):
     sys.path.insert(0, os.path.join(ROOT, sub))
-load_dotenv(os.path.join(ROOT, ".env"))
+# Secrets are surfaced through the SecretsProvider (config/secrets.py): load the
+# repo-root .env via the provider, so the Anthropic API key is retrieved through
+# the secrets interface rather than a scattered os.environ / load_dotenv call.
+sys.path.insert(0, os.path.abspath(ROOT))
+from config import secrets as appsecrets  # noqa: E402
+appsecrets.load_env(os.path.join(ROOT, ".env"))
 
 # En produccion (host) la key llega como secret -> la pasamos al entorno
 # antes de que los modulos creen su cliente de Anthropic.

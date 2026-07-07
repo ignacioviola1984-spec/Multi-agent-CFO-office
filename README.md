@@ -171,6 +171,64 @@ system cannot change its own bounds or flip the auto-adopt flag. Details:
 registry, eval-gated promotion, maker-checker approval, append-only audit trail,
 rollback.
 
+### Governed write path & platform hardening (`payments/`, `identity/`, `sources/events/`, `config/`)
+The system is read-only by default; this is the **first governed write capability**,
+built so the read-only posture stays the default. Four modules, each with
+deterministic offline tests and honest boundaries:
+
+- **Payment initiation (`payments/`)** — agents are **propose-only**
+  (`PaymentProposal`); a deterministic engine (no LLM) validates against
+  per-transaction and per-period limits, an allowlisted counterparty registry,
+  the **reconciled canonical balance** (not a live API read), duplicate detection,
+  and currency/entity consistency. Validated proposals enter a maker-checker
+  execution gate: execution requires approval by a **registered human distinct from
+  the proposer**, and auto-execution is off behind a code-level flag
+  (`AUTO_EXECUTE_ENABLED`, the same pattern as `AUTO_ADOPT_ENABLED`). Execution goes
+  through a `PaymentRail` interface — a `SandboxRail` (local ledger) for the demo
+  and a **not-implemented** stub for a real bank/wallet rail. Every transition
+  (proposed → validated/rejected → approved/denied → executed/failed) is audited.
+  Idempotency keys make replays no-ops. Details: [`payments/README.md`](payments/README.md).
+- **Identity & access (`identity/`)** — binds the maker-checker roles to
+  **authenticated identities** via a provider-agnostic OIDC client (Auth0 / Entra ID
+  / Cognito are configuration), with a `LocalDevIdentity` provider so tests and the
+  demo run **offline**. RBAC checks the identity holds the role registered as owner;
+  **segregation of duties** is enforced in code (maker ≠ checker, approver ≠
+  proposer); every sign-off records the subject id + display name.
+  Details: [`identity/README.md`](identity/README.md).
+- **Event-driven ingestion (`sources/events/`)** — a webhook receiver with per-source
+  **HMAC verification**, an **idempotent append-only event store**, and a mapper that
+  lands events in the **same canonical layer** as the batch connectors (a synthetic
+  wallet-as-a-service source: deposits/withdrawals → `cash_bank`). A **replay**
+  command rebuilds canonical state deterministically regardless of arrival order
+  (sha256-verified). Details: [`sources/events/README.md`](sources/events/README.md).
+- **Secrets management (`config/secrets.py`)** — a `SecretsProvider` interface with an
+  `EnvFileProvider` (default) and a cloud secret-manager (KMS) **stub**, selected by
+  env var (no code change). Every secret read (Anthropic key, OAuth client secrets,
+  webhook HMAC secrets, OIDC config) goes through it, and secrets are **redacted**
+  from logs, audit entries, and snapshots. Rotation runbook (dual-secret window):
+  [`config/ROTATION.md`](config/ROTATION.md). Details: [`config/README.md`](config/README.md).
+
+One **end-to-end demo** wires them together offline (no API key): a synthetic wallet
+deposit webhook → canonical layer → reconciled balance → Treasury agent proposes a
+payout → deterministic validation → human approval (LocalDevIdentity) → SandboxRail
+execution → audit trail, and the **existing hard controls still pass**. It is a gate
+in the eval harness, so CI fails if any control weakens:
+
+```
+python payments/e2e_demo.py            # narrated end-to-end run
+python evals/eval_governed_write.py    # the same path as a CI gate
+```
+
+**Honest boundaries:** the payment rail is a local sandbox (no real bank/blockchain
+integration), the vault and the OIDC signature-verification are stubs (local dev
+uses `.env` + `LocalDevIdentity`), and the wallet source is synthetic. No LLM sits
+in the validation, approval, or execution path.
+
+**Stack:** Python (stdlib-first, offline), deterministic validation engine,
+maker-checker execution gate, OIDC/RBAC/segregation-of-duties, HMAC-verified
+idempotent webhook ingestion, provider-pattern secrets with redaction, append-only
+audit trail.
+
 ### Operating Model Live Demo, v2 (`cfo-demo-v2/`)
 A polished, HR-friendly walkthrough of the full operating model, following the data
 lifecycle: **ERP data pull → Order-to-Cash control tower → month-end close → evals →

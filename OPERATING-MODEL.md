@@ -153,11 +153,62 @@ known seeded-exception ground truth, so the controls and the test suite have a
 verifiable answer key. As with the close, the agents narrate and prioritize but the
 numbers are computed in code.
 
+## The governed write path (payments) and platform hardening
+
+The close and Order-to-Cash loops above are read-only. The **first governed write
+capability** — payment initiation — is added without changing that default, using
+the same governance grammar (deterministic checks, maker-checker, hard gates, audit
+trail):
+
+1. **Propose-only agents.** An agent (e.g. Treasury) can create a
+   `PaymentProposal`; it can never validate, approve, or execute. There is no code
+   path from a proposal to settlement that skips the gates.
+2. **Deterministic validation (no LLM).** A pure-code engine checks per-transaction
+   and per-period limits, an allowlisted counterparty registry, the **reconciled
+   canonical balance** (ties to the canonical layer, not a live API read), duplicate
+   detection, and currency/entity consistency. A failure rejects the proposal with
+   reasons, exactly like a failed close control.
+3. **Maker-checker execution gate, bound to identity.** A validated proposal
+   requires approval by a **registered human, authenticated (OIDC), holding the
+   required role, and distinct from the proposer** (segregation of duties enforced
+   in code). Auto-execution is off behind a code-level flag (`AUTO_EXECUTE_ENABLED`,
+   the same pattern as `AUTO_ADOPT_ENABLED`); the default posture is
+   approval-required.
+4. **Execution behind an interface.** A `PaymentRail` abstracts settlement:
+   a `SandboxRail` writes a local ledger (demo/tests); a real bank/wallet rail is a
+   documented, **not-implemented** stub. Idempotency keys make replays no-ops, so a
+   redelivery never double-pays.
+
+Two supporting layers make this defensible. **Identity** (`identity/`) turns the
+maker-checker roles — which were logical names — into authenticated identities:
+OIDC (provider-agnostic; `LocalDevIdentity` offline), RBAC, segregation of duties,
+and every sign-off in the audit trail now carries the **subject id + display name**,
+not just the role. **Event-driven ingestion** (`sources/events/`) lets wallet/payment
+webhooks land in the **same canonical layer** as the batch pull sources
+(HMAC-verified, idempotent, deterministic replay), so `finance_core` never learns
+whether data arrived by pull or push. **Secrets** (`config/secrets.py`) move behind
+a provider interface (env-file default, cloud-KMS stub) with redaction, so no secret
+reaches a log, audit entry, or snapshot.
+
+An end-to-end demo (`payments/e2e_demo.py`) runs the whole chain offline — wallet
+deposit webhook → canonical → reconciled balance → propose → validate → approve
+(LocalDevIdentity) → SandboxRail execute → audit — and asserts the **existing hard
+controls still pass**. It is wired into `evals/eval_governed_write.py`, so CI fails
+if any gate weakens.
+
+**Honest boundaries:** the payment rail is a local sandbox (no real
+bank/blockchain), the vault and OIDC signature verification are stubs (offline uses
+`.env` + `LocalDevIdentity`), and the wallet source is synthetic. No LLM sits in the
+validation, approval, or execution path — an LLM may only draft a proposal's
+human-readable rationale.
+
 ## What this is and isn't
 
 - **Is:** a realistic, production-shaped operating model — staged, with
   deterministic controls and a domain expert accountable for each function, and a
-  CFO accountable for the consolidated result. Its statement-level math is checked
+  CFO accountable for the consolidated result. It now also has a **governed write
+  path** (payment initiation) with propose-only agents, a deterministic validation
+  engine, an identity-bound maker-checker execution gate, and a sandbox rail. Its statement-level math is checked
   three ways: adversarial synthetic traps (detection), a real public-company
   reconciliation (accuracy), and an independent second-model review (dual-model).
 - **Isn't (yet):** fully wired to production data. The statement-level numbers now

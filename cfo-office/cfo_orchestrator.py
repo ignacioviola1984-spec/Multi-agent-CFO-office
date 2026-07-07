@@ -40,7 +40,12 @@ import review
 import stages
 import cfo_o2c_bridge   # runs the Order-to-Cash control tower as a sub-orchestration
 
-load_dotenv(os.path.join(ROOT, ".env"))
+# Secrets are surfaced through the SecretsProvider (config/secrets.py): load the
+# repo-root .env via the provider, so the Anthropic API key is retrieved through
+# the secrets interface rather than a scattered os.environ / load_dotenv call.
+sys.path.insert(0, os.path.abspath(ROOT))
+from config import secrets as appsecrets  # noqa: E402
+appsecrets.load_env(os.path.join(ROOT, ".env"))
 client = Anthropic()
 MODEL = "claude-sonnet-4-6"
 

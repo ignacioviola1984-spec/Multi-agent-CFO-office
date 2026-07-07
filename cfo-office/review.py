@@ -51,15 +51,42 @@ def _auto():
         return True
 
 
-def review(ctx, function, summary=""):
+def _authenticated_review(function, role, token, provider=None):
+    """When a token is supplied, bind the sign-off to an AUTHENTICATED identity:
+    verify the token and confirm the identity holds this function's reviewer role.
+    Returns (subject, name). Raises (Unauthenticated/Unauthorized) if the caller
+    presented a token but it is invalid or lacks the role -- an identity-enforced
+    review must not silently fall back to role-only. Lazy-imported so the offline
+    path never depends on identity/."""
+    import os as _os
+    import sys as _sys
+    _root = _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
+    if _root not in _sys.path:
+        _sys.path.insert(0, _root)
+    from identity import access
+    identity = access.authenticate(token, provider)
+    access.require_role(identity, role)
+    return identity.subject, identity.name
+
+
+def review(ctx, function, summary="", token=None, provider=None):
     """First-line review of one function by its domain expert (maker-checker).
 
     Interactive: prompts the reviewer to approve, reject, or type a correction
     note (free text = rejected with feedback). Non-interactive: auto-approves and
     records it as such. Stores the decision in shared state + audit trail.
+
+    If `token` is supplied, the sign-off is bound to an AUTHENTICATED identity
+    (identity/): the token is verified and must hold this function's reviewer role,
+    and the recorded decision carries the subject id + display name, not just the
+    role. Without a token the behaviour is unchanged (role-only, auto in CI).
     """
     role = REVIEWERS.get(function, "Domain reviewer")
-    if _auto():
+    subject = name = None
+    if token is not None:
+        subject, name = _authenticated_review(function, role, token, provider)
+        decision, note, mode = "approved", "", "human"
+    elif _auto():
         decision, note, mode = "approved", "", "auto"
     else:
         print(f"\n  [first-line review · {role}] {function} submitted for sign-off:")
@@ -79,9 +106,13 @@ def review(ctx, function, summary=""):
 
     rec = {"reviewer": role, "decision": decision, "note": note, "mode": mode,
            "ts": datetime.datetime.now().isoformat(timespec="seconds")}
+    if subject is not None:
+        # Bind the sign-off to the authenticated human, not just the role name.
+        rec["subject"], rec["name"] = subject, name
     ctx.put(function, {"review": rec})
+    who = f"{role} [{subject} ({name})]" if subject is not None else role
     detail = f"{function} {decision}" + (" (auto)" if mode == "auto" else "") + (f": {note}" if note else "")
-    ctx.audit(role, decision.upper(), detail)
+    ctx.audit(who, decision.upper(), detail)
     return rec
 
 

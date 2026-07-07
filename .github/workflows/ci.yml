@@ -39,3 +39,15 @@ jobs:
         run: python run_o2c_control_tower.py --compare
       - name: QuickBooks canonical source tests (offline, fixture)
         run: python sources/tests/run_tests.py
+
+      # --- Governed write path: secrets, identity, event ingestion, payments ---
+      - name: Secrets management tests (config/)
+        run: python config/tests/run_tests.py
+      - name: Identity / RBAC / segregation tests (identity/)
+        run: python identity/tests/run_tests.py
+      - name: Event ingestion tests (sources/events/)
+        run: python sources/events/tests/run_tests.py
+      - name: Payments write-path tests (payments/)
+        run: python payments/tests/run_tests.py
+      - name: Governed write-path eval (end-to-end gates + hard controls)
+        run: python evals/eval_governed_write.py
