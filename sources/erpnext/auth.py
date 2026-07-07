@@ -27,6 +27,23 @@ the server too. Defense in depth.
 """
 
 import os
+import sys
+
+# Secrets (api_key / api_secret) flow through the SecretsProvider
+# (config/secrets.py), not raw os.environ, so a move to a cloud secret manager is
+# configuration, not a code change. Falls back to the environment if the provider
+# is unavailable.
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+try:
+    from config import secrets as _appsecrets
+
+    def _secret(name, default=""):
+        return _appsecrets.get_secret(name, default)
+except Exception:  # pragma: no cover - defensive fallback
+    def _secret(name, default=""):
+        return os.environ.get(name, default)
 
 
 class ERPNextAuthError(Exception):
@@ -38,8 +55,8 @@ class Config:
 
     def __init__(self):
         self.base_url = (os.environ.get("ERPNEXT_BASE_URL", "") or "").rstrip("/")
-        self.api_key = os.environ.get("ERPNEXT_API_KEY", "")
-        self.api_secret = os.environ.get("ERPNEXT_API_SECRET", "")
+        self.api_key = _secret("ERPNEXT_API_KEY", "")
+        self.api_secret = _secret("ERPNEXT_API_SECRET", "")
         # Optional: restrict to specific companies (comma-separated) and label the
         # snapshot. Both are optional; absent means "all companies the user sees".
         self.companies = [c.strip() for c in os.environ.get("ERPNEXT_COMPANIES", "").split(",") if c.strip()]

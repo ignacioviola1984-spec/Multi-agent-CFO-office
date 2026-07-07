@@ -48,7 +48,7 @@ These are not demo conveniences; they are how serious finance-AI must be built:
 | Choice in this repo | Why it holds up in production |
 |---|---|
 | **Numbers computed in code; the LLM only narrates** | No hallucinated figures. Every number is deterministic and traceable. This is the core safety property, and it is now checked against reality: the deterministic math ties 17 of 17 statement-level figures to dLocal's reported FY2024/FY2025 filings (17 PASS, 0 FAIL). |
-| **Read-only surface; the AI never posts to the ledger** | The safe posture. The AI assists, detects, and drafts — it does not move money or book entries. |
+| **Read-only by default; the first write path is governed** | The safe posture is still the default. The one write capability (payment initiation, `payments/`) is deliberately fenced: agents are **propose-only**, a deterministic engine (no LLM) validates, a **registered human distinct from the proposer** approves, auto-execution is off behind a code-level flag, and settlement goes through a `PaymentRail` interface whose only implementation here is a **local SandboxRail** (a real bank/wallet rail is a not-implemented stub). No LLM is in the validation, approval, or execution path. The AI still never moves money on its own. |
 | **Audit trail (append-only, timestamped)** | A governance and SOX requirement, present by design. |
 | **Deterministic cross-checks / reconciliations as gates** | Real controls that catch inconsistency before it reaches the board. |
 | **Single source of truth for every figure** | Agents cannot disagree on a number by construction. |
@@ -76,9 +76,16 @@ These are not demo conveniences; they are how serious finance-AI must be built:
 2. **Reliability at scale (AgentOps).** The eval harness here is the right idea,
    but a deployment needs regression suites on the real ledger, drift
    detection, monitoring, alerting and rollback.
-3. **Security and segregation of duties.** Role-based access, secrets
-   management, and SoD enforced *in the system* — not present here, by design
-   (it is a demo).
+3. **Security and segregation of duties.** The scaffolding is now **in the
+   system**, not just described: authenticated identity via a provider-agnostic
+   OIDC client (`identity/`, with a `LocalDevIdentity` offline provider), RBAC that
+   checks the identity holds the role registered as owner, segregation of duties
+   enforced in code (maker ≠ checker, approver ≠ proposer), and secrets behind a
+   `SecretsProvider` (`config/`) with redaction from logs/audit/snapshots and a
+   documented rotation window. The **honest boundary**: the real IdP signature
+   verification and the cloud secret manager are stubs — offline dev/demo/CI use
+   locally-signed tokens and `.env`, so this proves the enforcement logic and the
+   integration seams, not a production IdP/KMS deployment.
 4. **Model-output trust.** Even with exact numbers, the narrative can *frame*
    them misleadingly (a real lesson from this repo: an early agent mislabeled
    "overdue"). In production the commentary is treated as a draft for human

@@ -17,6 +17,13 @@ ERPNext details: [`erpnext/README.md`](erpnext/README.md). It is multi-company /
 multi-currency, so it exercises the **consolidation** the QuickBooks sandbox could
 not (see "Honest boundary").
 
+**Push, not only pull.** The connectors above are batch **pull**. Wallet/payment
+infrastructure is event-driven, so [`events/`](events/README.md) adds a **push**
+path — an HMAC-verified, idempotent webhook receiver with an append-only event
+store and a deterministic replay — that lands events in the **same canonical
+tables** through the same `SourceConnector` contract. `finance_core` never learns
+whether a period arrived by pull or by push.
+
 ## Layers
 
 | File | Role |

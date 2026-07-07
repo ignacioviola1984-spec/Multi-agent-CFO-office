@@ -21,9 +21,27 @@ No business logic here; this only obtains and persists a valid bearer token.
 import base64
 import json
 import os
+import sys
 import time
 import urllib.parse
 import urllib.request
+
+# Secrets (client_id / client_secret / refresh_token) flow through the
+# SecretsProvider (config/secrets.py), not raw os.environ, so a move to a cloud
+# secret manager is configuration, not a code change here. Falls back to the
+# environment if the provider is unavailable, so this module never hard-fails on
+# import in an isolated context.
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+try:
+    from config import secrets as _appsecrets
+
+    def _secret(name, default=""):
+        return _appsecrets.get_secret(name, default)
+except Exception:  # pragma: no cover - defensive fallback
+    def _secret(name, default=""):
+        return os.environ.get(name, default)
 
 # Intuit OpenID discovery documents (the documented entry points; the actual
 # auth/token endpoints are READ from these, not hardcoded).
@@ -56,9 +74,9 @@ class Config:
         self.env = (env or os.environ.get("QBO_ENV", "sandbox")).lower()
         if self.env not in API_BASE:
             raise QBOAuthError(f"QBO_ENV must be one of {sorted(API_BASE)}, got '{self.env}'")
-        self.client_id = os.environ.get("QBO_CLIENT_ID", "")
-        self.client_secret = os.environ.get("QBO_CLIENT_SECRET", "")
-        self.refresh_token = os.environ.get("QBO_REFRESH_TOKEN", "")
+        self.client_id = _secret("QBO_CLIENT_ID", "")
+        self.client_secret = _secret("QBO_CLIENT_SECRET", "")
+        self.refresh_token = _secret("QBO_REFRESH_TOKEN", "")
         self.realm_id = os.environ.get("QBO_REALM_ID", "")
         self.redirect_uri = os.environ.get("QBO_REDIRECT_URI", "http://localhost:8000/callback")
         self.token_store_path = os.environ.get("QBO_TOKEN_STORE") or default_token_store_path()

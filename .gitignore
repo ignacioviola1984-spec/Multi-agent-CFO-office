@@ -4,6 +4,14 @@ __pycache__/
 audit_log.jsonl
 cfo_state.json
 
+# Governed write-path runtime artifacts (append-only trails, ledgers, event
+# stores, replayed canonical). The code and tests are versioned; the runtime
+# state they generate is not. Nothing here contains a secret (redacted by design).
+governance/audit_trail.jsonl
+payments/_state/
+sources/events/_store/
+**/_e2e_run/
+
 # QuickBooks source (sources/): the OAuth token store and runtime artifacts.
 # Secrets and the rotating refresh token live in .env / the token store and are
 # NEVER committed. The committed test fixture under sources/fixtures/ is fine.
