@@ -21,6 +21,8 @@ import argparse
 import datetime
 import json
 import os
+import shutil
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -280,6 +282,39 @@ def compose_workflow_map(ctx, status):
 # --------------------------------------------------------------------------
 # Outputs
 # --------------------------------------------------------------------------
+def _git_commit_hash():
+    """The git commit this run executed against (like `git rev-parse HEAD`), with a
+    '-dirty' suffix when tracked files have uncommitted changes. Returns 'unknown'
+    if git is not available or the command fails. Untracked files do NOT count as
+    dirty (matches `git describe --dirty`), so generated outputs never mark a run
+    dirty. Uses subprocess only; no dependencies."""
+    def _git(args):
+        return subprocess.run(["git", *args], cwd=HERE, capture_output=True,
+                              text=True, timeout=5)
+    try:
+        head = _git(["rev-parse", "HEAD"])
+        sha = head.stdout.strip()
+        if head.returncode != 0 or not sha:
+            return "unknown"
+        status = _git(["status", "--porcelain", "--untracked-files=no"])
+        dirty = status.returncode == 0 and status.stdout.strip() != ""
+        return sha + ("-dirty" if dirty else "")
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+
+
+def _copy_to_latest(src_dir, latest_dir):
+    """Mirror a run's output files into a stable `latest/` directory (overwriting),
+    so consumers that read a fixed path always find the newest run. Copies the
+    flat output files only; same names, same content, only the location differs."""
+    os.makedirs(latest_dir, exist_ok=True)
+    for name in os.listdir(src_dir):
+        sp = os.path.join(src_dir, name)
+        if os.path.isfile(sp):
+            shutil.copy2(sp, os.path.join(latest_dir, name))
+    return latest_dir
+
+
 def write_outputs(ctx, status, run_meta, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     paths = {}
@@ -317,9 +352,23 @@ def write_outputs(ctx, status, run_meta, output_dir):
 # --------------------------------------------------------------------------
 # Run
 # --------------------------------------------------------------------------
-def run(period=P.DEFAULT_PERIOD, output_dir=DEFAULT_OUTPUT_DIR, fail_on_hard=False, verbose=True):
+def run(period=P.DEFAULT_PERIOD, output_dir=DEFAULT_OUTPUT_DIR, fail_on_hard=False, verbose=True,
+        history_run_id=None, history_subdir=None):
     started = datetime.datetime.now()
     run_id = f"O2C-{period}-{started.strftime('%Y%m%d%H%M%S')}"
+    # When a history_run_id is given, write this run's outputs to a per-run folder
+    # (<output_dir>/runs/<run_id>/[<subdir>/]) and mirror them to
+    # <output_dir>/latest/[<subdir>/] after, so runs are preserved and a stable
+    # path still points at the newest. history_subdir nests the run by period,
+    # used by --compare which archives several periods under ONE run_id. Without a
+    # history_run_id, behaviour is unchanged: outputs go straight to output_dir.
+    if history_run_id:
+        rel = os.path.join(history_run_id, history_subdir) if history_subdir else history_run_id
+        target_dir = os.path.join(output_dir, "runs", rel)
+        latest_target = os.path.join(output_dir, "latest", history_subdir) if history_subdir \
+            else os.path.join(output_dir, "latest")
+    else:
+        target_dir, latest_target = output_dir, None
     if verbose:
         print("=" * 64)
         print(f"O2C CONTROL TOWER | period {period} | run {run_id}")
@@ -351,7 +400,8 @@ def run(period=P.DEFAULT_PERIOD, output_dir=DEFAULT_OUTPUT_DIR, fail_on_hard=Fal
 
     audit = ctx.get("O2CAuditAgent")
     run_meta = {
-        "run_id": run_id, "run_timestamp": started.isoformat(timespec="seconds"), "period": period,
+        "run_id": run_id, "commit_hash": _git_commit_hash(),
+        "run_timestamp": started.isoformat(timespec="seconds"), "period": period,
         "input_files": list(loader.FILES.values()),
         "input_record_counts": {k: int(len(v)) for k, v in dfs.items()},
         "calculations_performed": [
@@ -365,13 +415,16 @@ def run(period=P.DEFAULT_PERIOD, output_dir=DEFAULT_OUTPUT_DIR, fail_on_hard=Fal
         "audit_score": audit.get("audit_score"), "audit_opinion": audit.get("audit_opinion"),
         "final_status": status,
     }
+    if history_run_id:
+        run_meta["run_dir"] = history_run_id   # the run-folder id, recorded in the audit trail
 
     ctx.record("orchestrator", "gate",
                f"hard failures={csum['hard_failures']} -> status {status}")
-    paths = write_outputs(ctx, status, run_meta, output_dir)
+    paths = write_outputs(ctx, status, run_meta, target_dir)
     run_meta["output_files"] = list(paths.keys())
     _dump({"run": run_meta, "audit_trail": ctx.audit, "reviews": ctx.reviews},
-          os.path.join(output_dir, "o2c_audit_trail.json"))   # rewrite with output_files
+          os.path.join(target_dir, "o2c_audit_trail.json"))   # rewrite with output_files
+    latest_dir = _copy_to_latest(target_dir, latest_target) if history_run_id else None
 
     if verbose:
         print("-" * 64)
@@ -380,7 +433,9 @@ def run(period=P.DEFAULT_PERIOD, output_dir=DEFAULT_OUTPUT_DIR, fail_on_hard=Fal
         print(f"  audit opinion: {audit.get('audit_opinion', 'n/a').upper()} "
               f"(score {audit.get('audit_score')}%)")
         print(f"  FINAL STATUS: {status}")
-        print(f"  outputs written to: {output_dir}")
+        print(f"  outputs written to: {target_dir}")
+        if latest_dir:
+            print(f"  latest copy: {latest_dir}")
         for fn in paths:
             print(f"    - {fn}")
 
