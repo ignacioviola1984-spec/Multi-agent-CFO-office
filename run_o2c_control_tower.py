@@ -56,7 +56,9 @@ def gather(period, history_run_id=None, history_subdir=None):
 
 
 def print_single(period, history_run_id=None):
-    row, ctx, meta = gather(period, history_run_id)
+    # Nest by period too, so the archive layout is identical to --compare:
+    # runs/<run_id>/<period>/ and latest/<period>/ (one canonical structure).
+    row, ctx, meta = gather(period, history_run_id, history_subdir=period)
     s = ctx.calc["summary"]
     print("=" * 64)
     print(f"  O2C / REVENUE OPERATIONS CONTROL TOWER  |  period {period}")
@@ -92,13 +94,13 @@ def print_single(period, history_run_id=None):
     if not issues:
         print("    (none)")
 
-    run_dir = (os.path.join(orch.DEFAULT_OUTPUT_DIR, "runs", history_run_id)
+    run_dir = (os.path.join(orch.DEFAULT_OUTPUT_DIR, "runs", history_run_id, period)
                if history_run_id else orch.DEFAULT_OUTPUT_DIR)
     print(f"\n  OUTPUTS written to {run_dir}:")
     for fn in meta["output_files"]:
         print(f"    - {fn}")
     if history_run_id:
-        print(f"  latest copy (stable path): {os.path.join(orch.DEFAULT_OUTPUT_DIR, 'latest')}")
+        print(f"  latest copy (stable path): {os.path.join(orch.DEFAULT_OUTPUT_DIR, 'latest', period)}")
     print("\n  (deterministic numbers; agents diagnose and narrate but never invent a figure)")
 
 
