@@ -1,9 +1,9 @@
-# CFO AI Office — public demo
+# CFO AI Office — month-end close with live approval gates
 
-An HR-friendly, **no-API-key, zero-cost** web demo of the multi-agent CFO
-office. It replays a **saved run** (`demo_snapshot.json`) so anyone can
-explore it instantly, and the interactive widgets recompute live from those
-same numbers — no AI calls, so it can never run up an API bill.
+A **no-API-key, zero-cost** web app of the multi-agent CFO office. The numbers
+come from a saved run of the deterministic engine (`demo_snapshot.json`); the
+interactive widgets recompute live from those same numbers — no AI calls, so it
+can never run up an API bill.
 
 Shows the full month-end loop — **record → close → report → analyze → control →
 audit** — across eight specialist agents (Controller, Treasury, Administration
@@ -11,10 +11,17 @@ audit** — across eight specialist agents (Controller, Treasury, Administration
 FP&A, Strategic Finance, Internal Controls, and an independent Audit), run as an
 explicit **staged operating model** with **two-tier human-in-the-loop control
 (maker-checker)**: every function is signed off by its own domain expert (the
-first line), and the CFO agent gives a single **final consolidated sign-off** on
-top. The public replay auto-approves the sign-offs (no reviewer at the console);
-the maker-checker workflow, audit trail and block-on-reject are real. Data is
-**synthetic** (a fictional SaaS company, Lumen Inc.) — no live company data.
+first line), and the CFO gives a single **final consolidated sign-off** on top.
+
+**The approval gates are live.** The close advances stage by stage and pauses
+at every sign-off: the person at the console acts as each domain expert (the 11
+first-line gates) and as the CFO (the final gate). Each panel shows exactly what
+is being approved — amounts, reconciliations, exceptions — plus the stage's
+deterministic control. Rejecting sends the work back for one rework cycle; a
+second rejection **blocks the whole close** (no board pack is built on
+unapproved work). Every decision is time-stamped in the session's sign-off log.
+A restart control reruns the close from the top. Data is **synthetic** (a
+fictional SaaS company, Lumen Inc.) — no live company data.
 
 For the technical audience, the full source (the agents, the deterministic
 engine, the eval harness) is in the repo root. This folder is just the
