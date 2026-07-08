@@ -48,13 +48,18 @@ at.sidebar.radio[0].set_value(NAV[2]).run()
 at.radio(key="o2c_period").set_value("🟢 Clean month (2026-06)").run()
 ok &= check("O2C · clean month", at)
 
-# Close: click Run the close, then CFO sign-off
-at = AppTest.from_file(APP, default_timeout=90).run()
+# Close: start it, approve every first-line gate, then the CFO's final one
+GATES = ["Controller", "Treasury", "Accounts Receivable", "Accounts Payable", "Tax",
+         "Accounting & Close", "Financial Reporting", "FP&A", "Strategic Finance",
+         "Internal Controls", "Audit"]
+at = AppTest.from_file(APP, default_timeout=120).run()
 at.sidebar.radio[0].set_value(NAV[3]).run()
-at.button[0].click().run()                                   # Run the close
-ok &= check("Close · after Run", at)
-if at.button:
-    at.button(key="cfo_signoff").click().run()               # CFO final sign-off
-    ok &= check("Close · after CFO sign-off (board pack)", at)
+at.button(key="start_close").click().run()                   # Start the close
+ok &= check("Close · after start (gate 1 pending)", at)
+for fn in GATES:
+    at.button(key=f"ap_{fn}").click().run()                  # approve each gate
+    ok &= check(f"Close · approved: {fn}", at)
+at.button(key="cfo_ap").click().run()                        # CFO final sign-off
+ok &= check("Close · after CFO sign-off (board pack)", at)
 
 print("\nRESULT:", "ALL STATIONS OK" if ok else "FAILURES ABOVE")
