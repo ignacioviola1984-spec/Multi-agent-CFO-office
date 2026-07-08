@@ -283,11 +283,20 @@ def compose_workflow_map(ctx, status):
 # Outputs
 # --------------------------------------------------------------------------
 def _git_commit_hash():
-    """The git commit this run executed against (like `git rev-parse HEAD`), with a
-    '-dirty' suffix when tracked files have uncommitted changes. Returns 'unknown'
-    if git is not available or the command fails. Untracked files do NOT count as
-    dirty (matches `git describe --dirty`), so generated outputs never mark a run
-    dirty. Uses subprocess only; no dependencies."""
+    """The git commit this run executed against.
+
+    Precedence: the GIT_COMMIT environment variable when set and non-empty, else
+    `git rev-parse HEAD`. In a container the .git directory and the git binary are
+    usually absent (see the Dockerfile / .dockerignore), so the build stamps the
+    commit into GIT_COMMIT and this reads it from there; outside a container it
+    falls back to git. The git path adds a '-dirty' suffix when tracked files have
+    uncommitted changes (untracked files do NOT count, matching `git describe
+    --dirty`), and returns 'unknown' if git is unavailable or the command fails.
+    Uses subprocess only; no dependencies."""
+    env_commit = os.environ.get("GIT_COMMIT", "").strip()
+    if env_commit:
+        return env_commit
+
     def _git(args):
         return subprocess.run(["git", *args], cwd=HERE, capture_output=True,
                               text=True, timeout=5)
