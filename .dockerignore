@@ -3,9 +3,14 @@
 # container never needs the git history or the git binary.
 .git
 .gitignore
+.venv/
+venv/
 __pycache__/
+**/__pycache__/
 *.pyc
+**/*.pyc
 .env
+.streamlit/
 # Locally generated run artifacts (regenerated inside the container).
 cfo-office/o2c/outputs/runs/
 cfo-office/o2c/outputs/latest/
