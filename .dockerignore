@@ -1,0 +1,13 @@
+# Keep the image lean and, crucially, WITHOUT .git: the commit identity is
+# injected at build time via the GIT_COMMIT build arg (see Dockerfile), so the
+# container never needs the git history or the git binary.
+.git
+.gitignore
+__pycache__/
+*.pyc
+.env
+# Locally generated run artifacts (regenerated inside the container).
+cfo-office/o2c/outputs/runs/
+cfo-office/o2c/outputs/latest/
+**/_e2e_run/
+**/_state/
