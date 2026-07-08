@@ -8,15 +8,22 @@
 # Build (stamp the image with the current commit):
 #   docker build --build-arg GIT_COMMIT=$(git rev-parse HEAD) -t cfo-office:dev .
 #
-# Run (persist the per-run output history to a host volume):
+# Run the O2C job (default CMD; persist per-run output history to a host volume):
 #   docker run --rm -v "$(pwd)/o2c-outputs:/app/cfo-office/o2c/outputs" cfo-office:dev
 #
-FROM python:3.12-slim
+# Run the interactive operating-model app (no secrets, no API key needed):
+#   docker run --rm -p 8501:8501 cfo-office:dev \
+#     python -m streamlit run cfo-demo-v2/app.py \
+#     --server.headless true --server.port 8501 --server.address 0.0.0.0
+#
+FROM python:3.14-slim
 
 WORKDIR /app
 
-# Dependencies match CI (.github/workflows/ci.yml).
-RUN pip install --no-cache-dir requests anthropic python-dotenv mcp pandas
+# One reproducible install path: everything comes from requirements.txt (the
+# same file CI and a local venv use), never from an ad-hoc pip list here.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 

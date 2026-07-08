@@ -14,10 +14,11 @@ pandas>=2.0           # finance_core, O2C control tower, metrics, controls
 # --- LLM agents (CFO office, orchestration, RAG) ---
 anthropic>=0.40       # Claude client used by every narrating agent
 python-dotenv>=1.0    # loads ANTHROPIC_API_KEY from the repo-root .env
+mcp>=1.0              # finance-mcp/ and sources/mcp_server.py (CI installs it too)
 
 # --- API integration demo and web app ---
 requests>=2.31        # live FX rate clients (api-integration/)
-streamlit>=1.30       # webapp/ and cfo-demo/ dashboards
+streamlit>=1.30       # webapp/ and the cfo-demo / cfo-demo-v2 apps
 
 # --- document intelligence (RAG) ---
 numpy>=1.24           # vector search
