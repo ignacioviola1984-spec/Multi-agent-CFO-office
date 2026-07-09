@@ -23,6 +23,11 @@ streamlit>=1.30       # webapp/ and the cfo-demo / cfo-demo-v2 apps
 # --- document intelligence (RAG) ---
 numpy>=1.24           # vector search
 
+# --- cloud output upload (O2C Cloud Run Job) ---
+google-cloud-storage>=2.10  # persist run outputs to GCS; ADC only, no key files.
+                            # Imported lazily, only when O2C_OUTPUT_BUCKET is set,
+                            # so local runs and CI never need it.
+
 # Optional, heavy: the RAG embedder prefers sentence-transformers (PyTorch) but
 # falls back to model2vec (numpy-only) automatically, so neither is required to
 # run the deterministic suites. Install one of these only to exercise RAG:
