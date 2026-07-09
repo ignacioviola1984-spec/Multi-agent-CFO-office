@@ -150,6 +150,68 @@ def compare_periods(periods=COMPARE_PERIODS, do_print=True, history_run_id=None)
     return rows
 
 
+def _gcs_targets(run_id, output_dir):
+    """(local_path, blob_name) for every file under runs/<run_id>/ and latest/.
+    The blob name is the path relative to output_dir with forward slashes, so the
+    bucket mirrors the local layout: runs/<run_id>/<period>/... and latest/<period>/..."""
+    targets = []
+    for sub in (os.path.join("runs", run_id), "latest"):
+        base = os.path.join(output_dir, sub)
+        if not os.path.isdir(base):
+            continue
+        for root, _dirs, files in os.walk(base):
+            for fn in sorted(files):
+                local_path = os.path.join(root, fn)
+                blob_name = os.path.relpath(local_path, output_dir).replace(os.sep, "/")
+                targets.append((local_path, blob_name))
+    return targets
+
+
+def upload_outputs_to_gcs(bucket_name, run_id, output_dir):
+    """Upload this run's outputs (runs/<run_id>/ and latest/) to gs://<bucket>/,
+    preserving the path structure. Authentication is Application Default
+    Credentials ONLY (no key files, no JSON paths): the Cloud Run Job's service
+    account is picked up automatically. Returns the number of files uploaded.
+    Raises RuntimeError if any file fails, naming each failure -- a run is not
+    successful unless the full evidence reached the bucket."""
+    from google.cloud import storage  # lazy: only needed when O2C_OUTPUT_BUCKET is set
+    client = storage.Client()          # Application Default Credentials, no args
+    bucket = client.bucket(bucket_name)
+
+    targets = _gcs_targets(run_id, output_dir)
+    uploaded, failures = 0, []
+    for local_path, blob_name in targets:
+        try:
+            bucket.blob(blob_name).upload_from_filename(local_path)
+            uploaded += 1
+        except Exception as exc:  # noqa: BLE001 - record which file failed, keep going
+            failures.append((blob_name, repr(exc)))
+
+    if failures:
+        for blob_name, err in failures:
+            print(f"  [GCS UPLOAD FAILED] {blob_name}: {err}", file=sys.stderr)
+        raise RuntimeError(
+            f"{len(failures)}/{len(targets)} file(s) failed to upload to "
+            f"gs://{bucket_name}/ (see errors above)")
+    return uploaded
+
+
+def _maybe_upload(run_id):
+    """Upload outputs to GCS when O2C_OUTPUT_BUCKET is set (the Cloud Run Job path).
+    When it is not set, do nothing -- local runs stay byte-for-byte as today.
+    Exits non-zero if the upload fails totally or partially."""
+    bucket_name = os.environ.get("O2C_OUTPUT_BUCKET")
+    if not bucket_name:
+        return
+    try:
+        n = upload_outputs_to_gcs(bucket_name, run_id, orch.DEFAULT_OUTPUT_DIR)
+    except Exception as exc:  # noqa: BLE001
+        print(f"\n  GCS upload FAILED: {exc}", file=sys.stderr)
+        sys.exit(1)
+    print(f"\n  GCS: uploaded {n} file(s) to gs://{bucket_name}/")
+    print(f"  Run: gs://{bucket_name}/runs/{run_id}/")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Run the O2C / RevOps control tower")
     ap.add_argument("--period", default=P.DEFAULT_PERIOD)
@@ -164,6 +226,10 @@ def main():
         compare_periods(history_run_id=run_id)
     else:
         print_single(args.period, history_run_id=run_id)
+
+    # Cloud Run Job: the container filesystem is ephemeral, so persist the run's
+    # outputs to GCS. No-op (local runs unchanged) unless O2C_OUTPUT_BUCKET is set.
+    _maybe_upload(run_id)
 
 
 if __name__ == "__main__":
