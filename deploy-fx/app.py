@@ -15,14 +15,15 @@ import sys
 
 import streamlit as st
 
-# Secret en produccion -> variable de entorno (antes de importar el agente).
-if "ANTHROPIC_API_KEY" in st.secrets:
-    os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
-
-# Reusamos el agente FX ya construido (no duplicamos logica).
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "api-integration"))
-import agent_fx  # noqa: E402
+sys.path.insert(0, os.path.join(HERE, "..", "api-integration"))   # for agent_fx (lazy import)
+sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..")))     # repo root, for config
+
+# En un contenedor limpio / Cloud Run no hay secrets.toml, y acceder a st.secrets
+# ahi lanza StreamlitSecretNotFoundError. Resolvemos la key sin romper (env ->
+# st.secrets, guardado). Sin key -> el agente FX (vivo) queda deshabilitado.
+from config import streamlit_secrets  # noqa: E402
+HAS_LIVE_KEY = streamlit_secrets.ensure_anthropic_key() is not None
 
 st.set_page_config(page_title="AI Finance — FX Agent", layout="centered")
 st.title("AI Finance Engineering — FX Agent")
@@ -32,9 +33,14 @@ st.caption(
     "trae el codigo, no el modelo."
 )
 
+if not HAS_LIVE_KEY:
+    st.info("Agente FX en vivo deshabilitado: no hay ANTHROPIC_API_KEY. Configurala "
+            "como variable de entorno o en .streamlit/secrets.toml para habilitarlo.")
+
 q = st.text_input("Pregunta sobre tipos de cambio", "Cuanto son 1500 dolares en euros?")
-if st.button("Preguntar"):
+if st.button("Preguntar", disabled=not HAS_LIVE_KEY):
     with st.spinner("El agente esta pensando..."):
+        import agent_fx  # noqa: E402  (lazy: construye el cliente Anthropic solo con key)
         out = agent_fx.run(q)
     if out["tool"]:
         st.markdown(f"**Herramienta pedida:** `{out['tool']}`  ·  argumentos: `{out['args']}`")

@@ -29,10 +29,11 @@ sys.path.insert(0, os.path.abspath(ROOT))
 from config import secrets as appsecrets  # noqa: E402
 appsecrets.load_env(os.path.join(ROOT, ".env"))
 
-# En produccion (host) la key llega como secret -> la pasamos al entorno
-# antes de que los modulos creen su cliente de Anthropic.
-if "ANTHROPIC_API_KEY" in st.secrets:
-    os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+# En un contenedor limpio / Cloud Run no hay secrets.toml, y acceder a st.secrets
+# ahi lanza StreamlitSecretNotFoundError. Resolvemos la key sin romper (env ->
+# st.secrets, guardado). Sin key -> modo replay, agentes vivos deshabilitados.
+from config import streamlit_secrets  # noqa: E402
+HAS_LIVE_KEY = streamlit_secrets.ensure_anthropic_key() is not None
 
 st.set_page_config(page_title="AI Finance Engineering", layout="wide")
 st.title("AI Finance Engineering — Live Demo")
@@ -40,6 +41,12 @@ st.caption(
     "Demo de Lumen Inc., una SaaS post-seed (datos sinteticos). "
     "Los numeros los calcula el codigo; los agentes razonan y redactan."
 )
+if not HAS_LIVE_KEY:
+    st.info(
+        "Modo replay: no hay ANTHROPIC_API_KEY configurada, asi que los features "
+        "de agentes vivos (FX, cierre, RAG) estan deshabilitados. Configurala como "
+        "variable de entorno o en .streamlit/secrets.toml para habilitarlos."
+    )
 
 tab_fx, tab_ops, tab_docs = st.tabs(
     ["FX Agent", "Operating Model", "Document Intelligence"]
@@ -52,7 +59,7 @@ with tab_fx:
     st.subheader("Agente de tipos de cambio (tool use)")
     st.write("El modelo decide cuando llamar una herramienta de FX; el codigo la ejecuta contra una API real.")
     q = st.text_input("Pregunta", "Cuanto son 1500 dolares en euros?", key="fx_q")
-    if st.button("Preguntar", key="fx_btn"):
+    if st.button("Preguntar", key="fx_btn", disabled=not HAS_LIVE_KEY):
         with st.spinner("El agente esta pensando..."):
             import agent_fx
             out = agent_fx.run(q)
@@ -76,7 +83,7 @@ with tab_ops:
     st.caption("El cierre demo corre sobre el ultimo periodo: AR y caja son una foto "
                "puntual del cierre (no hay snapshots por periodo anterior).")
 
-    if st.button("Correr cierre", key="ops_run"):
+    if st.button("Correr cierre", key="ops_run", disabled=not HAS_LIVE_KEY):
         with st.spinner("Corriendo sub-agentes..."):
             from orchestrator import close_review_agent, cash_forecast_agent
             import operating_model as om
@@ -101,7 +108,8 @@ with tab_ops:
                 st.markdown(f"- **[{sev}]** {msg}")
 
         if ops["report"] is None:
-            if st.button("Aprobar y generar reporte al board", key="ops_approve"):
+            if st.button("Aprobar y generar reporte al board", key="ops_approve",
+                         disabled=not HAS_LIVE_KEY):
                 with st.spinner("Generando reporte..."):
                     from orchestrator import reporting_agent
                     ops["report"] = reporting_agent(ops["close"], ops["cash"]["narrative"])
@@ -118,7 +126,7 @@ with tab_docs:
 
     dq = st.text_input("Pregunta sobre los documentos",
                        "What are the payment terms for the marketing agency?", key="doc_q")
-    if st.button("Preguntar (RAG)", key="doc_btn"):
+    if st.button("Preguntar (RAG)", key="doc_btn", disabled=not HAS_LIVE_KEY):
         with st.spinner("Buscando y respondiendo..."):
             from rag import answer
             hits, txt = answer(dq)
@@ -126,7 +134,8 @@ with tab_docs:
         st.caption("Fuentes recuperadas: " + ", ".join(sorted(set(h[0] for h in hits))))
 
     st.divider()
-    if st.button("Extraer terminos de todos los contratos", key="doc_extract"):
+    if st.button("Extraer terminos de todos los contratos", key="doc_extract",
+                 disabled=not HAS_LIVE_KEY):
         with st.spinner("Extrayendo..."):
             from rag import extract_terms
             rows = extract_terms()
