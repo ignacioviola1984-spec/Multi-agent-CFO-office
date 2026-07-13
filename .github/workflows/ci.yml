@@ -40,6 +40,11 @@ jobs:
       - name: QuickBooks canonical source tests (offline, fixture)
         run: python sources/tests/run_tests.py
 
+      - name: AP Control Tower adapter tests (offline, synthetic fixture)
+        run: python sources/ap_control_tower/tests/run_tests.py
+      - name: AP Control Tower reference integration demo (fail-closed gate)
+        run: python sources/ap_control_tower/demo.py
+
       # --- Governed write path: secrets, identity, event ingestion, payments ---
       - name: Secrets management tests (config/)
         run: python config/tests/run_tests.py

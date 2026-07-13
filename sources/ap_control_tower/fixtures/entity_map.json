@@ -1,0 +1,10 @@
+{
+  "_comment": "Explicit reference-case mapping from AP Control Tower factura_documento to a canonical entity_id. The export carries NO entity column, so the entity is provided here and never inferred by the adapter. Entities US and DE are two of the canonical entities in finance-mcp/data/entities.csv.",
+  "by_document": {
+    "AP-CT-INV-0001": "DE",
+    "AP-CT-INV-0002": "US",
+    "AP-CT-INV-0003": "DE",
+    "AP-CT-INV-0004": "US"
+  },
+  "default": null
+}
