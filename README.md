@@ -48,6 +48,24 @@ today; NetSuite / SAP / Odoo / Zoho would each be one more `SourceConnector`. Se
 
 ![Data sources (swappable): QuickBooks Online (sandbox) reaches the engine through a read-only OAuth2 adapter and a mapper that rewrites its objects into canonical tables; the synthetic Lumen source and future connectors (NetSuite / SAP / Odoo / Zoho) feed those same canonical tables, which use the exact columns finance_core already reads. The canonical layer fans out to deterministic validations (balance foots, AR ties, no future postings) and an immutable raw-plus-canonical-plus-manifest snapshot hashed with sha256, and is read directly by both finance_core (the CFO and O2C engine) and the source-agnostic MCP tools.](docs/data-sources.svg)
 
+#### AP Control Tower — approved accounts-payable feed
+
+**AP Control Tower** (an independent product and repository,
+`ignacioviola1984-spec/ap-control-tower`) turns supplier invoices into a
+human-approved payment **proposal** and exports it (CSV/Excel). A bounded,
+read-only adapter ([`sources/ap_control_tower/`](sources/ap_control_tower/README.md))
+maps each approved row into a canonical **open** `ap_invoices` record — with
+deterministic **fail-closed** validation, **explicit entity mapping**,
+duplicate/replay protection, and a sha256 + provenance **audit manifest** — so the
+existing Accounts Payable, Treasury (13-week cash forecast), internal-controls and
+audit consumers see the obligations through the **same canonical layer, with no
+engine change**. It is a mapper (not a full `SourceConnector`): it **posts nothing
+to the ledger and executes no payment** — a proposal is not a paid or booked item —
+so the close's subledger→GL control and the independent audit correctly flag the
+imported obligations as *not-yet-posted*. Transport is CSV/Excel (no real-time API,
+no bidirectional sync, no shared database); the committed fixture is synthetic.
+Reproduce it offline, no API key: `python sources/ap_control_tower/demo.py`.
+
 ## Projects
 
 ### Finance MCP Connector (`finance-mcp/`)

@@ -24,6 +24,15 @@ store and a deterministic replay — that lands events in the **same canonical
 tables** through the same `SourceConnector` contract. `finance_core` never learns
 whether a period arrived by pull or by push.
 
+**Partial feeds, too.** Not every source is a full ledger.
+[`ap_control_tower/`](ap_control_tower/README.md) is an **approved
+accounts-payable** feed: a read-only adapter that maps **AP Control Tower**'s
+human-approved payment-proposal export (an independent product; CSV/Excel) into
+canonical **open** `ap_invoices`, **fail-closed**, so the existing AP / Treasury /
+controls / audit consumers see the obligations — **without** posting to the
+ledger or executing a payment. It is a **mapper, not a `SourceConnector`** (a
+proposal is not a full financial source) and changes no engine formula.
+
 ## Layers
 
 | File | Role |
@@ -34,6 +43,7 @@ whether a period arrived by pull or by push.
 | `canonical/schema.py` | The canonical schema. `CONTRACT_TABLES` = byte-identical columns to `finance-mcp/data/*.csv`, so the engine reads a QBO period exactly like the synthetic one. |
 | `canonical/connector.py` | `SourceConnector` interface + `SyntheticConnector` (existing CSVs, untouched) + `QuickBooksConnector` + `ERPNextConnector`. New vendors implement the same interface. |
 | `erpnext/` | The ERPNext (Frappe) source: read-only adapter, `auth.py` (API key+secret), and the multi-company / multi-currency mapper. Same interface as QuickBooks. See [`erpnext/README.md`](erpnext/README.md). |
+| `ap_control_tower/` | A **partial, approved accounts-payable** feed (not a full source): a read-only adapter that maps AP Control Tower's approved payment-proposal export (CSV/Excel) into canonical **open** `ap_invoices`, plus a module-owned trace/manifest. Fail-closed; no ledger posting, no payment. A mapper, not a `SourceConnector`. See [`ap_control_tower/README.md`](ap_control_tower/README.md). |
 | `canonical/validate.py` | Deterministic validations: balance sheet foots **per entity**, trial balance balances **per entity**, AR ties to control **per entity**, no future-dated postings, currency known (from the source's fx_rates), **fx_rates cover every currency used**, counts > 0. Non-zero exit on failure. |
 | `canonical/materialize.py` | Source selection (`SOURCE` env) + the source-agnostic pipeline (extract → canonical → validate → snapshot → materialize CSVs) for QuickBooks and ERPNext. |
 | `snapshots/writer.py` | **Immutable** snapshot: `raw/` (QBO JSON) + `canonical/` (CSV) + `manifest.json` (counts, period, realm, UTC timestamp, **sha256 of every file**, validation result). Append-only. |
