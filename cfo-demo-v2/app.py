@@ -202,6 +202,7 @@ NAV = [
     "3 · Month-end close",
     "4 · Evals - does it hold?",
     "5 · Self-improvement",
+    "6 · AP Control Tower",
 ]
 choice = st.sidebar.radio("Walk the model", NAV, label_visibility="collapsed")
 
@@ -1416,6 +1417,77 @@ def render_selfimprove():
            "rewritten.")
 
 
+
+
+# ==========================================================================
+# 6 - AP CONTROL TOWER (Accounts Payable / P2P)
+# ==========================================================================
+
+def render_ap():
+    section_title("6", "AP Control Tower",
+                  "The payables sibling of the O2C tower: real invoices in, "
+                  "an auditable payment proposal out, a human gate on every euro.")
+
+    st.markdown(
+        "A separate working system (private PoC, real client invoices) that runs "
+        "Accounts Payable end to end: invoices arrive from a read-only Gmail folder "
+        "or manual upload, **Google Document AI** extracts structured fields, "
+        "deterministic controls act on the data, and only genuine exceptions reach "
+        "a person. Approved invoices produce an Excel/CSV payment proposal with a "
+        "hash-chained audit trail. **It never releases funds.**")
+
+    st.markdown(
+        "<div class='chips'>"
+        "<span class='chip'>Gmail / PDF intake</span>"
+        "<span class='chip'>Document AI extraction</span>"
+        "<span class='chip'>Maker-checker controls</span>"
+        "<span class='chip'>Human gates: confirm data · release payment</span>"
+        "<span class='chip'>Audit trail (hash-chained)</span>"
+        "<span class='chip'>Python · Cloud Run · PostgreSQL</span>"
+        "</div>", unsafe_allow_html=True)
+
+    st.markdown("### Measured, not promised")
+    st.markdown(
+        "Every version is evaluated against a **versioned golden dataset**: 106 "
+        "documents (8 real invoices, 76 independently labeled public documents, 22 "
+        "synthetic stress cases built to fail: duplicates and near-duplicates, "
+        "altered IBANs, unauthorized POs, credit notes, non-invoice documents), "
+        "each with its expected outcome defined by hand *before* processing.")
+
+    c = st.columns(3)
+    c[0].metric("Routed to human review", "9.2%", "-78.8 pts vs run1",
+                delta_color="inverse")
+    c[1].metric("Routing accuracy", "94.8%", "+80.2 pts vs run1")
+    c[2].metric("Field extraction accuracy", "96.2%", "+0.9 pts vs run1")
+
+    st.markdown(
+        "**The finding that changed the design:** the first evaluation run showed "
+        "the extractor's confidence score is *inverted* relative to measured "
+        "accuracy - documents reported at 90-100% confidence had the lowest real "
+        "accuracy (88.8%), while sub-80% confidence documents were extracted "
+        "correctly 97.8% of the time. Confidence-based routing was sending 88% of "
+        "documents to a person. The routing policy was rebuilt on deterministic "
+        "validations (net + VAT = total, tax-ID and IBAN format, date plausibility, "
+        "supplier distinct from the buying entity) and re-run against the same "
+        "frozen dataset: review load fell to 9.2% with no payment-risk case "
+        "slipping through.")
+
+    st.markdown(
+        "The evaluation framework ships inside the product: a **\"Measured "
+        "quality\" tab** in the PoC shows the dataset composition, per-field "
+        "accuracy, the calibration finding and the improvement cycle.")
+
+    st.markdown(
+        "<span class='small'>Case study: "
+        "<a href='https://www.getdeterma.com/systems/ap-control-tower/'>"
+        "getdeterma.com/systems/ap-control-tower</a> · live PoC available in a "
+        "private walkthrough.</span>", unsafe_allow_html=True)
+
+    honest("The AP Control Tower is a separate codebase and a private PoC with real "
+           "client invoices, so this station describes it rather than replaying it. "
+           "Figures describe evaluation runs over the declared dataset mix; they "
+           "are not a claim of audited accounting accuracy.")
+
 # --------------------------------------------------------------------------
 # Router.
 # --------------------------------------------------------------------------
@@ -1432,6 +1504,8 @@ elif choice == NAV[4]:
     render_evals()
 elif choice == NAV[5]:
     render_selfimprove()
+elif choice == NAV[6]:
+    render_ap()
 
 st.divider()
 st.markdown(
