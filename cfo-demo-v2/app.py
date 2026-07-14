@@ -198,11 +198,9 @@ st.sidebar.divider()
 NAV = [
     "🏠  Overview",
     "1 · ERP - data in",
-    "2 · O2C control tower",
-    "3 · Month-end close",
-    "4 · Evals - does it hold?",
-    "5 · Self-improvement",
-    "6 · AP Control Tower",
+    "2 · Month-end close",
+    "3 · Evals - does it hold?",
+    "4 · Self-improvement",
 ]
 choice = st.sidebar.radio("Walk the model", NAV, label_visibility="collapsed")
 
@@ -235,24 +233,25 @@ def render_overview():
     st.markdown("<span class='small'>The system follows one synthetic company's data "
                 "through the whole lifecycle. Each station is real software, not slides; "
                 "the numbers come from code and are regression-tested. Use the sidebar, "
-                "or read the five stations below.</span>", unsafe_allow_html=True)
+                "or read the four stations below.</span>", unsafe_allow_html=True)
 
     st.markdown(
         "<div class='flow card'>"
         "<span class='pill'>1 · ERP data in</span> ➜ "
-        "<span class='pill'>2 · O2C control tower</span> ➜ "
-        "<span class='pill'>3 · Month-end close</span> ➜ "
-        "<span class='pill'>4 · Evals</span> ➜ "
-        "<span class='pill'>5 · Self-improvement</span><br>"
-        "<span class='tiny'>data comes in → cash gets collected → the books get closed "
-        "→ the results get verified → the system gets better</span>"
+        "<span class='pill'>2 · Month-end close</span> ➜ "
+        "<span class='pill'>3 · Evals</span> ➜ "
+        "<span class='pill'>4 · Self-improvement</span><br>"
+        "<span class='tiny'>data comes in → the books get closed (receivables and "
+        "payables are worked inside the close, by their control towers) → the results "
+        "get verified → the system gets better</span>"
         "</div>", unsafe_allow_html=True)
 
     with st.expander("ℹ️  What am I looking at? (30-second version)"):
         st.markdown(
             "- A **multi-agent AI system for corporate finance** - real, running software.\n"
-            "- It runs the full lifecycle: **pull from the ERP → work the receivables → "
-            "close the books → verify → improve**.\n"
+            "- It runs the full lifecycle: **pull from the ERP → close the books - with "
+            "receivables (O2C) and payables (AP) worked by their control towers inside "
+            "the close → verify → improve**.\n"
             "- **Every number is computed by code** (deterministic, auditable). The AI agents "
             "read the numbers, reason, and write commentary - they never invent a figure. "
             "That is the core design rule.\n"
@@ -261,7 +260,7 @@ def render_overview():
             "- **Human control is built in:** read-only ERP access, hard control gates that block "
             "reporting, maker-checker sign-off, an independent audit, and bounded self-improvement "
             "no one can widen.\n"
-            "- **The month-end close pauses at every sign-off** (station 3): each gate is approved "
+            "- **The month-end close pauses at every sign-off** (station 2): each gate is approved "
             "live at this console by the named role — 11 domain-expert sign-offs plus the CFO's "
             "final one. Nothing advances on its own.\n"
             "- Every number throughout is pre-computed by the deterministic engine and "
@@ -271,24 +270,23 @@ def render_overview():
         )
 
     st.divider()
-    st.markdown("##### The five stations")
+    st.markdown("##### The four stations")
     cards = [
         ("1 · ERP - data in", "Pull from QuickBooks (read-only) into one standard format and "
          f"run {SOURCES['clean']['n_ok']}/{SOURCES['clean']['n_total']} validations."),
-        ("2 · O2C control tower", "Collections, cash application, DSO, disputes, credit - "
-         "with a hard gate that blocks reporting when controls fail."),
-        ("3 · Month-end close", "Eight specialist agents produce the three financial "
-         "statements and a board pack — and the close pauses at every domain-expert "
-         "sign-off until you approve it."),
-        ("4 · Evals - does it hold?", "Four offline scoreboards: 22/22 numbers, 12/12 safety, "
+        ("2 · Month-end close", "Eight specialist agents produce the three financial "
+         "statements and a board pack. Receivables (O2C) and payables (AP) run under "
+         "Administration as control towers — and the close pauses at every "
+         "domain-expert sign-off until you approve it."),
+        ("3 · Evals - does it hold?", "Four offline scoreboards: 22/22 numbers, 12/12 safety, "
          "48/48 O2C, 17/17 against real audited SEC filings."),
-        ("5 · Self-improvement", "The system gets better over time, but only within strict "
+        ("4 · Self-improvement", "The system gets better over time, but only within strict "
          "limits, only with sign-off from the right person, and every change can be undone."),
     ]
     cards_html = "".join(
         f"<div class='gcard'><div class='role'>{title}</div><div class='tiny'>{desc}</div></div>"
         for title, desc in cards)
-    st.markdown(f"<div class='cardgrid five'>{cards_html}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='cardgrid four'>{cards_html}</div>", unsafe_allow_html=True)
 
     st.divider()
     st.markdown("##### Why this matters")
@@ -412,108 +410,7 @@ def render_erp():
 
 
 # ==========================================================================
-# STATION 2 - O2C CONTROL TOWER
-# ==========================================================================
-
-def render_o2c():
-    section_title("2", "Order-to-Cash control tower",
-                  "A sub-orchestration that ingests 15 interlocking tables (CRM → contracts → "
-                  "billing → cash), computes every receivables number in code, runs 25 controls, "
-                  "and <b>blocks reporting</b> when the hard controls fail. Ten agents diagnose "
-                  "and rank the issues; an independent audit agent re-performs the tie-outs.")
-
-    pick = st.radio("Pick a month to run the control tower on:",
-                    ["🔴 Broken month (2026-05)", "🟢 Clean month (2026-06)"], horizontal=True,
-                    key="o2c_period")
-    period = "2026-05" if pick.startswith("🔴") else "2026-06"
-    d = O2C[period]
-    cs = d["controls_summary"]; s = d["summary"]
-    blocked = d["final_status"] == "BLOCKED_HARD_CONTROLS"
-
-    if blocked:
-        st.markdown(f"<div class='blocked'>⛔ <b>{d['final_status']}</b> - "
-                    f"{cs['hard_failures']} of {cs['hard']} hard controls failed, so the pipeline "
-                    f"will not release a report. Independent audit opinion: "
-                    f"<b>{d['audit_opinion'].upper()}</b> (score {d['audit_score']}%).</div>",
-                    unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div class='opinion'>✅ <b>{d['final_status']}</b> - "
-                    f"0 hard-control failures (only {cs['soft_warnings']} soft warnings). "
-                    f"Independent audit opinion: <b>{d['audit_opinion'].upper()}</b> "
-                    f"(score {d['audit_score']}%).</div>", unsafe_allow_html=True)
-
-    st.markdown("#### The receivables, in the CFO's language")
-    c = st.columns(4)
-    c[0].metric("DSO (days sales outstanding)", f"{s['dso']:.0f}d", f"best possible {s['best_possible_dso']:.0f}d",
-                delta_color="off")
-    c[1].metric("Overdue AR", money_m(s["overdue_ar_usd"]), f"of {money_m(s['open_ar_usd'])} open",
-                delta_color="off")
-    c[2].metric("Unapplied cash", money_m(s["unapplied_cash_usd"]), "cash received, not yet matched",
-                delta_color="off")
-    c[3].metric("Disputed AR", money_m(s["disputed_ar_usd"]), f"{s['disputed_ar_pct']:.1f}% of AR",
-                delta_color="off")
-    c = st.columns(4)
-    c[0].metric("Control pass rate", f"{cs['pass_rate_pct']:.0f}%", f"{cs['pass_count']}/{cs['total']} controls",
-                delta_color="off")
-    c[1].metric("Unbilled revenue (leakage)", money_m(s["unbilled_revenue_usd"]),
-                "billed late or not at all", delta_color="off")
-    c[2].metric("Credit-limit breach", money_m(s["credit_breach_amount_usd"]), "exposure over limit",
-                delta_color="off")
-    c[3].metric("Expected cash (13 weeks)", money_m(s["expected_cash_13w_usd"]), "collections forecast",
-                delta_color="off")
-
-    cc = st.columns(2)
-    with cc[0]:
-        st.markdown("**AR aging**")
-        try:
-            import pandas as pd
-            df = pd.DataFrame(d["aging"])
-            if not df.empty and "aging_bucket" in df and "open_ar_usd" in df:
-                st.bar_chart(df.set_index("aging_bucket")["open_ar_usd"], height=240)
-        except Exception:
-            st.table([{"Bucket": r.get("aging_bucket"), "Open AR": money(r.get("open_ar_usd"))}
-                      for r in d["aging"]])
-    with cc[1]:
-        st.markdown("**Bookings → Billings → Revenue → Cash**")
-        try:
-            import pandas as pd
-            bdf = pd.DataFrame(d["bridge"], columns=["stage", "usd"]).set_index("stage")
-            st.bar_chart(bdf["usd"], height=240)
-        except Exception:
-            for label, amt in d["bridge"]:
-                st.markdown(f"- {label}: **{money(amt)}**")
-
-    st.divider()
-    st.markdown(f"#### Top issues the agents raised ({len(d['top_issues'])} shown, severity-ranked)")
-    for e in d["top_issues"]:
-        st.markdown(f"{sev_badge(e['severity'])}&nbsp; <b>{e['agent']}</b> - {clean(e['message'])}",
-                    unsafe_allow_html=True)
-    st.caption("The controls, the hard-fail gate and the audit trail run in code on every pass — "
-               "the verdict above is the engine's actual output for this month. Sign-off gates are "
-               "exercised live in the Month-end close station.")
-
-    with st.expander(f"🛡️ Full control register ({cs['total']} controls: {cs['hard']} hard + {cs['soft']} soft)"):
-        st.table([{
-            "ID": str(c["control_id"]), "Control": str(c["name"]), "Sev": str(c["severity"]),
-            "Status": str(c["status"]), "Owner": str(c["owner"]),
-            "Failing $": money(c["failing_amount_usd"]) if c["failing_amount_usd"] else "-",
-            "Blocks": "⛔" if c["blocks_reporting"] else "",
-        } for c in d["controls"]])
-
-    with st.expander(f"📐 Governed metrics ({len(d['metrics'])}, each with owner + threshold band)"):
-        st.table([{
-            "Metric": str(m["name"]), "Value": fmt_cell(m["value"]),
-            "Unit": str(m["unit"] or ""), "Status": str(m["status"] or ""),
-            "Owner": str(m["owner"] or ""), "Threshold": fmt_cell(m["threshold"]),
-        } for m in d["metrics"]])
-
-    st.caption(f"Input scale: {sum(v for v in d['input_record_counts'].values() if isinstance(v,(int,float))):,.0f} "
-               f"source rows across {len(d['input_record_counts'])} tables, {d['n_agents']} agents, "
-               f"{cs['total']} controls, {len(d['metrics'])} metrics - all deterministic.")
-
-
-# ==========================================================================
-# STATION 3 - MONTH-END CLOSE (ported from v1)
+# STATION 2 - MONTH-END CLOSE (ported from v1)
 # ==========================================================================
 
 def render_close():
@@ -1123,7 +1020,7 @@ def render_close():
         restart("restart_done")
 
     # ----------------------------------------------------------- the station
-    section_title("3", "Month-end close - the CFO office",
+    section_title("2", "Month-end close - the CFO office",
                   "Eight specialist agents run the loop <b>record → close → report → analyze → "
                   "control → audit</b>. Every figure is code-computed; the agents write the "
                   "commentary. Two-tier sign-off, exercised <b>live</b>: the close pauses at each "
@@ -1134,7 +1031,7 @@ def render_close():
     team_rows = [
         [("🧾 Controller", "Close review: P&L consistency, margins, risk flags."),
          ("💵 Treasury", "Cash, burn, runway, 13-week cash forecast."),
-         ("🗂️ Administration", "Supervises AR · AP · Tax."),
+         ("🗂️ Administration", "Supervises AR · AP · Tax - runs the two control towers below."),
          ("📒 Accounting & Reporting", "Supervises the close and the 3 statements.")],
         [("📈 FP&A", "Forecast + variances (vs last month and vs budget)."),
          ("🎯 Strategic Finance", "Growth quality, capital efficiency, path to breakeven."),
@@ -1145,6 +1042,31 @@ def render_close():
         f"<div class='gcard'><div class='role'>{role}</div><div class='tiny'>{desc}</div></div>"
         for row in team_rows for role, desc in row)
     st.markdown(f"<div class='cardgrid four'>{team_html}</div>", unsafe_allow_html=True)
+
+    st.markdown("##### Inside Administration - the two control towers")
+    towers = [
+        ("📥 O2C control tower (receivables)",
+         "Collections, cash application, DSO, disputes and credit run as a "
+         "sub-orchestration with a hard gate that blocks reporting when controls "
+         "fail. Its receivables numbers feed the close and are verified by 48/48 "
+         "offline tests (see Evals)."),
+        ("📤 AP Control Tower (payables)",
+         "A separate working system (private PoC, real invoices): Gmail/PDF intake → "
+         "Document AI extraction → deterministic controls → human gates → an "
+         "auditable payment proposal that lands in the close as canonical "
+         "<code>ap_invoices</code>. Measured against a 106-document golden dataset: "
+         "9.2% routed to human review, 96.2% field accuracy, no payment-risk case "
+         "slipping through. <a href='https://www.getdeterma.com/systems/"
+         "ap-control-tower/'>Case study</a>."),
+    ]
+    towers_html = "".join(
+        f"<div class='gcard'><div class='role'>{role}</div><div class='tiny'>{desc}</div></div>"
+        for role, desc in towers)
+    st.markdown(f"<div class='cardgrid four' style='grid-template-columns:repeat(2,1fr)'>{towers_html}</div>",
+                unsafe_allow_html=True)
+    st.markdown("<span class='tiny'>AP figures describe evaluation runs over a declared "
+                "test mix; they are not a claim of audited accounting accuracy.</span>",
+                unsafe_allow_html=True)
 
     st.divider()
 
@@ -1271,7 +1193,7 @@ def render_close():
 # ==========================================================================
 
 def render_evals():
-    section_title("4", "Evals - does it actually hold?",
+    section_title("3", "Evals - does it actually hold?",
                   "Four independent, fully offline scoreboards. This is the trust layer: the AI's "
                   "numbers are right, and they don't quietly change over time.")
 
@@ -1344,7 +1266,7 @@ def render_evals():
 # ==========================================================================
 
 def render_selfimprove():
-    section_title("5", "Bounded self-improvement",
+    section_title("4", "Bounded self-improvement",
                   "The AI may propose a better <b>value</b> for exactly four finance parameters - and "
                   "nothing else. It can never touch a formula, widen its own limits, or adopt a change "
                   "on its own. This is the strongest proof the system stays under control.")
@@ -1419,74 +1341,6 @@ def render_selfimprove():
 
 
 
-# ==========================================================================
-# 6 - AP CONTROL TOWER (Accounts Payable / P2P)
-# ==========================================================================
-
-def render_ap():
-    section_title("6", "AP Control Tower",
-                  "The payables sibling of the O2C tower: real invoices in, "
-                  "an auditable payment proposal out, a human gate on every euro.")
-
-    st.markdown(
-        "A separate working system (private PoC, real client invoices) that runs "
-        "Accounts Payable end to end: invoices arrive from a read-only Gmail folder "
-        "or manual upload, **Google Document AI** extracts structured fields, "
-        "deterministic controls act on the data, and only genuine exceptions reach "
-        "a person. Approved invoices produce an Excel/CSV payment proposal with a "
-        "hash-chained audit trail. **It never releases funds.**")
-
-    st.markdown(
-        "<div class='chips'>"
-        "<span class='chip'>Gmail / PDF intake</span>"
-        "<span class='chip'>Document AI extraction</span>"
-        "<span class='chip'>Maker-checker controls</span>"
-        "<span class='chip'>Human gates: confirm data · release payment</span>"
-        "<span class='chip'>Audit trail (hash-chained)</span>"
-        "<span class='chip'>Python · Cloud Run · PostgreSQL</span>"
-        "</div>", unsafe_allow_html=True)
-
-    st.markdown("### Measured, not promised")
-    st.markdown(
-        "Every version is evaluated against a **versioned golden dataset**: 106 "
-        "documents (8 real invoices, 76 independently labeled public documents, 22 "
-        "synthetic stress cases built to fail: duplicates and near-duplicates, "
-        "altered IBANs, unauthorized POs, credit notes, non-invoice documents), "
-        "each with its expected outcome defined by hand *before* processing.")
-
-    c = st.columns(3)
-    c[0].metric("Routed to human review", "9.2%", "-78.8 pts vs run1",
-                delta_color="inverse")
-    c[1].metric("Routing accuracy", "94.8%", "+80.2 pts vs run1")
-    c[2].metric("Field extraction accuracy", "96.2%", "+0.9 pts vs run1")
-
-    st.markdown(
-        "**The finding that changed the design:** the first evaluation run showed "
-        "the extractor's confidence score is *inverted* relative to measured "
-        "accuracy - documents reported at 90-100% confidence had the lowest real "
-        "accuracy (88.8%), while sub-80% confidence documents were extracted "
-        "correctly 97.8% of the time. Confidence-based routing was sending 88% of "
-        "documents to a person. The routing policy was rebuilt on deterministic "
-        "validations (net + VAT = total, tax-ID and IBAN format, date plausibility, "
-        "supplier distinct from the buying entity) and re-run against the same "
-        "frozen dataset: review load fell to 9.2% with no payment-risk case "
-        "slipping through.")
-
-    st.markdown(
-        "The evaluation framework ships inside the product: a **\"Measured "
-        "quality\" tab** in the PoC shows the dataset composition, per-field "
-        "accuracy, the calibration finding and the improvement cycle.")
-
-    st.markdown(
-        "<span class='small'>Case study: "
-        "<a href='https://www.getdeterma.com/systems/ap-control-tower/'>"
-        "getdeterma.com/systems/ap-control-tower</a> · live PoC available in a "
-        "private walkthrough.</span>", unsafe_allow_html=True)
-
-    honest("The AP Control Tower is a separate codebase and a private PoC with real "
-           "client invoices, so this station describes it rather than replaying it. "
-           "Figures describe evaluation runs over the declared dataset mix; they "
-           "are not a claim of audited accounting accuracy.")
 
 # --------------------------------------------------------------------------
 # Router.
@@ -1497,15 +1351,11 @@ if choice == NAV[0]:
 elif choice == NAV[1]:
     render_erp()
 elif choice == NAV[2]:
-    render_o2c()
-elif choice == NAV[3]:
     render_close()
-elif choice == NAV[4]:
+elif choice == NAV[3]:
     render_evals()
-elif choice == NAV[5]:
+else:
     render_selfimprove()
-elif choice == NAV[6]:
-    render_ap()
 
 st.divider()
 st.markdown(
