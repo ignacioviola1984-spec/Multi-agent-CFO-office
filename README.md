@@ -1,19 +1,22 @@
-# AI Finance Portfolio
+# Multi-Agent CFO Office — Finance AI Engineering Portfolio
 
-Finance AI engineering projects: live API integration, a custom MCP
-connector for a multi-entity finance system, a multi-agent month-end close
-model with reliability controls, and a multi-agent CFO office that runs the
-close over a shared, auditable state. The deterministic numbers are also
-validated against real public filings: they tie **17 of 17** to dLocal
-(NASDAQ: DLO) reported FY2024 and FY2025 figures, statement-level, public data
-only. Built by a finance operator with 17 years of experience, now building the
-systems.
+An inspectable Finance AI operating model that combines source adapters, a
+custom MCP connector, a multi-agent CFO office, an Order-to-Cash control tower,
+and an approved-proposal feed from AP Control Tower. The workflows operate over
+a shared canonical and auditable state, with deterministic financial engines,
+maker-checker controls, human approval gates, and bounded self-improvement. The
+statement-level math is also validated against real public filings: it ties
+**17 of 17** figures to dLocal (NASDAQ: DLO) reported FY2024 and FY2025 figures,
+using public data only. Built by a finance operator with 17 years of experience,
+now building the systems.
 
-> **▶️ Live demo (instant, no signup):** click through the whole operating model end to
-> end, in the order data flows (ERP data pull → Order-to-Cash control tower → month-end
-> close → evals → self-improvement), at
-> **[ignacio-viola-finance-agentic-workflow.streamlit.app](https://ignacio-viola-finance-agentic-workflow.streamlit.app/)**.
-> Every number is computed in code; the page replays saved runs, so it needs no API key.
+> **▶️ Live demo on Cloud Run (no signup):** follow the operating model end to
+> end — **ERP data pull → month-end close with O2C and AP control towers → evals →
+> bounded self-improvement** — at
+> **[cfo-office-demo-597507822266.us-central1.run.app](https://cfo-office-demo-597507822266.us-central1.run.app/)**.
+> Every number is computed in code; the app replays deterministic saved runs, so
+> it needs no API key. The first request after inactivity may take a few seconds
+> while the scale-to-zero service starts.
 
 > **Validated against real public filings:** the deterministic statement-level math
 > now ties **17 of 17** figures to dLocal (NASDAQ: DLO) reported FY2024/FY2025
@@ -29,29 +32,34 @@ systems.
 > **See it run:** [`CASE-STUDY.md`](CASE-STUDY.md) walks a month-end close end to end
 > on synthetic data (every figure computed in code).
 
-## Agentic architecture
+## End-to-end CFO Office flow
 
-A single CFO orchestrator coordinates the month-end close, the Order-to-Cash
-control tower (a sub-orchestration), and the bounded self-improvement loop, all
-under one governance layer: deterministic numbers, maker/checker sign-off, an
-audit trail, and a hard gate that blocks reporting.
+The flow begins with read-only source ingestion and approved AP proposals mapped
+into a shared canonical finance layer. The O2C and AP control towers produce
+governed receivable and payable states; the CFO orchestrator then coordinates the
+eight specialist functions through **record → close → report → analyze → control
+→ audit**. The resulting statements, cash forecast, board pack, audit opinion,
+and payment proposals remain subject to deterministic controls, maker-checker
+review, human approval, hard gates, and a complete audit trail. Evals feed a
+bounded improvement loop, but only owner-approved parameter changes can return
+to the operating model.
 
-![Agentic architecture: a single CFO orchestrator coordinating the month-end close, the Order-to-Cash control tower (a sub-orchestration), and the bounded self-improvement loop under one governance layer of deterministic numbers, maker/checker sign-off, an audit trail, and a hard gate that blocks reporting.](docs/agentic-architecture.png)
+![End-to-end Multi-Agent CFO Office flow: read-only sources and AP proposals enter the canonical finance layer; O2C and AP control towers feed the CFO-orchestrated close; eight specialist finance functions produce governed statements, forecasts, board reporting, audit opinions, and payment proposals; evals and owner-approved bounded improvement close the loop under deterministic controls, maker-checker review, human approval, hard gates, and an audit trail.](docs/agentic-architecture.png)
 
 ### Data sources (swappable)
 
 The engine reads a **canonical layer**, never a vendor's objects. Any source maps
 into the same canonical contract (the columns `finance_core` already reads), so
-swapping sources never touches the engine. QuickBooks Online (sandbox) is wired
-today; NetSuite / SAP / Odoo / Zoho would each be one more `SourceConnector`. See
-[`sources/`](sources/README.md).
+swapping sources never touches the engine. QuickBooks Online (sandbox) and the
+bounded AP approved-proposal adapter are wired today; NetSuite / SAP / Odoo /
+Zoho would each be one more `SourceConnector`. See [`sources/`](sources/README.md).
 
 ![Data sources (swappable): QuickBooks Online (sandbox) reaches the engine through a read-only OAuth2 adapter and a mapper that rewrites its objects into canonical tables; the synthetic Lumen source and future connectors (NetSuite / SAP / Odoo / Zoho) feed those same canonical tables, which use the exact columns finance_core already reads. The canonical layer fans out to deterministic validations (balance foots, AR ties, no future postings) and an immutable raw-plus-canonical-plus-manifest snapshot hashed with sha256, and is read directly by both finance_core (the CFO and O2C engine) and the source-agnostic MCP tools.](docs/data-sources.svg)
 
 #### AP Control Tower — approved accounts-payable feed
 
 **AP Control Tower** (an independent product and repository,
-`ignacioviola1984-spec/ap-control-tower`) turns supplier invoices into a
+[`ignacioviola1984-spec/ap-control-tower`](https://github.com/ignacioviola1984-spec/ap-control-tower)) turns supplier invoices into a
 human-approved payment **proposal** and exports it (CSV/Excel). A bounded,
 read-only adapter ([`sources/ap_control_tower/`](sources/ap_control_tower/README.md))
 maps each approved row into a canonical **open** `ap_invoices` record — with
@@ -249,10 +257,10 @@ audit trail.
 
 ### Operating Model Live Demo, v2 (`cfo-demo-v2/`)
 A polished, HR-friendly walkthrough of the full operating model, following the data
-lifecycle: **ERP data pull → Order-to-Cash control tower → month-end close → evals →
-self-improvement**. It replays saved runs (every figure computed in code), so it is
-instant, free, and needs no API key. Live:
-**[ignacio-viola-finance-agentic-workflow.streamlit.app](https://ignacio-viola-finance-agentic-workflow.streamlit.app/)**.
+lifecycle: **ERP data pull → month-end close with O2C and AP control towers → evals →
+bounded self-improvement**. It replays saved runs (every figure computed in code),
+so it needs no API key. Live on Cloud Run:
+**[cfo-office-demo-597507822266.us-central1.run.app](https://cfo-office-demo-597507822266.us-central1.run.app/)**.
 The deterministic snapshots it reads are regenerated offline by `build_snapshots.py`.
 Details: [`cfo-demo-v2/README.md`](cfo-demo-v2/README.md).
 
